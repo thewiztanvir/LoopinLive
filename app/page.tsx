@@ -9,8 +9,8 @@ const BackgroundScene = dynamic(
 
 const Header = dynamic(() => import("./components/Header"), { ssr: false });
 
-const IPTVPlayer = dynamic(
-  () => import("./components/IPTVPlayer"),
+const LoopinLiveStream = dynamic(
+  () => import("./components/LoopinLiveStream"),
   { ssr: false }
 );
 
@@ -20,7 +20,7 @@ export default function Home() {
       <BackgroundScene />
       <div className="relative z-10">
         <Header />
-        <IPTVPlayer />
+        <LoopinLiveStream />
       </div>
     </main>
   );

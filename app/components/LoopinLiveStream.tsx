@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Hls from "hls.js";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -26,7 +26,7 @@ import {
   ChevronsLeft,
   ChevronsRight
 } from "lucide-react";
-import { FaGithub, FaTelegram, FaFacebook, FaYoutube, FaLinkedin, FaInternetExplorer, FaGlobe } from "react-icons/fa6";
+import { FaGithub, FaYoutube, FaLinkedin, FaGlobe } from "react-icons/fa6";
 
 interface Channel {
   id: string;
@@ -44,13 +44,109 @@ interface Playlist {
   channels: Channel[];
 }
 
-export default function IPTVPlayer() {
+interface ChannelsResponse {
+  channels: Channel[];
+  total: number;
+  totalAvailable: number;
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+  nextOffset: number;
+  categories: string[];
+}
+
+const CHANNEL_PAGE_SIZE = 80;
+const VIRTUAL_ROW_HEIGHT = 68;
+const VIRTUAL_GAP = 12;
+const VIRTUAL_OVERSCAN_CHANNELS = 20;
+const CHANNEL_PREFETCH_DISTANCE = 1200;
+
+const POPULAR_CATEGORY_ORDER = [
+  "All",
+  "Sports",
+  "News",
+  "Movies",
+  "Movie",
+  "Kids",
+  "Entertainment",
+  "Music",
+  "Documentary",
+  "Documentaries (EN)",
+  "Education",
+  "Religious",
+  "Lifestyle",
+  "Cooking",
+  "Travel",
+  "Business",
+  "Weather",
+];
+
+const COUNTRY_CATEGORY_ORDER = [
+  "Bangla",
+  "Bangladesh",
+  "English",
+  "Hindi",
+  "Indian Bangla",
+  "India",
+  "Pakistan",
+  "USA",
+  "UK",
+  "Canada",
+  "France",
+  "Germany",
+  "Italy",
+  "Spain",
+  "Turkey",
+  "Qatar",
+  "Saudi Arabia",
+  "United Arab Emirates",
+];
+
+const REGION_CATEGORY_KEYWORDS = ["capital", "region", "north", "south", "east", "west"];
+
+function getCategoryRank(category: string) {
+  const popularIndex = POPULAR_CATEGORY_ORDER.indexOf(category);
+  if (popularIndex !== -1) return popularIndex;
+
+  const countryIndex = COUNTRY_CATEGORY_ORDER.indexOf(category);
+  if (countryIndex !== -1) {
+    return 100 + countryIndex;
+  }
+
+  const lowerCategory = category.toLowerCase();
+  if (REGION_CATEGORY_KEYWORDS.some((keyword) => lowerCategory.includes(keyword))) {
+    return 200;
+  }
+
+  if (category.includes(";")) {
+    return 400;
+  }
+
+  return 300;
+}
+
+function sortCategoriesByUsefulness(categories: string[]) {
+  return [...categories].sort((a, b) => {
+    const rankDiff = getCategoryRank(a) - getCategoryRank(b);
+    if (rankDiff !== 0) return rankDiff;
+
+    return a.localeCompare(b);
+  });
+}
+
+export default function LoopinLiveStream() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [channelTotal, setChannelTotal] = useState(0);
+  const [hasMoreChannels, setHasMoreChannels] = useState(false);
+  const [nextChannelOffset, setNextChannelOffset] = useState(0);
+  const [defaultCategories, setDefaultCategories] = useState<string[]>(["All"]);
 
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   // Playlist Management States
@@ -74,7 +170,13 @@ export default function IPTVPlayer() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerWrapperRef = useRef<HTMLDivElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
+  const channelListRef = useRef<HTMLDivElement>(null);
+  const channelsRef = useRef<Channel[]>([]);
+  const defaultFetchIdRef = useRef(0);
   const [retryKey, setRetryKey] = useState(0);
+  const [listScrollTop, setListScrollTop] = useState(0);
+  const [listHeight, setListHeight] = useState(0);
+  const [gridColumns, setGridColumns] = useState(1);
 
   // Custom Player controls states
   const [isPaused, setIsPaused] = useState(true);
@@ -533,24 +635,64 @@ export default function IPTVPlayer() {
     }
   }, [activePlaylistId]);
 
-  // 1. Fetch channel metadata from our API route once on mount
   useEffect(() => {
-    async function loadChannels() {
+    const timeout = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
+
+  const fetchDefaultChannels = useCallback(
+    async (offset = 0, mode: "replace" | "append" = "replace") => {
+      const fetchId = ++defaultFetchIdRef.current;
+
       try {
-        setLoading(true);
-        const response = await fetch("/api/iptv/channels");
+        if (mode === "replace") {
+          setLoading(true);
+        } else {
+          setLoadingMore(true);
+        }
+
+        const params = new URLSearchParams({
+          limit: String(CHANNEL_PAGE_SIZE),
+          offset: String(offset),
+          search: debouncedSearchQuery,
+          category: selectedCategory,
+        });
+        const response = await fetch(`/api/iptv/channels?${params.toString()}`);
+
         if (!response.ok) {
           throw new Error(`Failed to load channels (Status ${response.status})`);
         }
-        const data = await response.json();
 
-        setPlaylists(prev => {
-          return prev.map(p => {
-            if (p.id === "default") {
-              return { ...p, channels: data };
-            }
-            return p;
-          });
+        const data = (await response.json()) as ChannelsResponse;
+        if (fetchId !== defaultFetchIdRef.current) return;
+
+        setDefaultCategories(data.categories);
+        setChannelTotal(data.total);
+        setHasMoreChannels(data.hasMore);
+        setNextChannelOffset(data.nextOffset);
+        const mergedChannels =
+          mode === "append"
+            ? [...channelsRef.current, ...data.channels]
+            : data.channels;
+        channelsRef.current = mergedChannels;
+        setChannels(mergedChannels);
+        setSelectedChannel((current) => {
+          if (current && mergedChannels.some((channel) => channel.id === current.id || channel.url === current.url)) {
+            return current;
+          }
+
+          return (
+            mergedChannels.find(
+              (channel) =>
+                channel.name.toLowerCase().includes("t sports") ||
+                channel.name.toLowerCase().includes("t-sports")
+            ) ||
+            mergedChannels[0] ||
+            null
+          );
         });
       } catch (err: unknown) {
         const message =
@@ -560,21 +702,54 @@ export default function IPTVPlayer() {
         console.error("Error fetching channels:", err);
         setError(message);
       } finally {
-        setLoading(false);
+        if (fetchId === defaultFetchIdRef.current) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
       }
-    }
-    loadChannels();
-  }, []);
+    },
+    [debouncedSearchQuery, selectedCategory]
+  );
+
+  // 1. Fetch built-in channels in pages instead of loading the whole dataset
+  useEffect(() => {
+    if (activePlaylistId !== "default") return;
+
+    const animationFrame = requestAnimationFrame(() => {
+      setListScrollTop(0);
+      if (channelListRef.current) {
+        channelListRef.current.scrollTop = 0;
+      }
+    });
+
+    const timeout = setTimeout(() => {
+      fetchDefaultChannels(0, "replace");
+    }, 0);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      clearTimeout(timeout);
+    };
+  }, [activePlaylistId, debouncedSearchQuery, selectedCategory, fetchDefaultChannels]);
 
   // Sync active playlist channels to standard list representation
   useEffect(() => {
+    if (activePlaylistId === "default") return;
+
     const currentPlaylist = playlists.find(p => p.id === activePlaylistId);
     if (currentPlaylist) {
       const selectedChannelId = selectedChannel?.id;
       const selectedChannelUrl = selectedChannel?.url;
 
       setTimeout(() => {
+        channelsRef.current = currentPlaylist.channels;
         setChannels(currentPlaylist.channels);
+        setChannelTotal(currentPlaylist.channels.length);
+        setHasMoreChannels(false);
+        setNextChannelOffset(0);
+        setLoading(false);
+        setLoadingMore(false);
+
         if (currentPlaylist.channels.length > 0) {
           const alreadySelected = currentPlaylist.channels.find(
             c => c.id === selectedChannelId || c.url === selectedChannelUrl
@@ -1021,19 +1196,109 @@ export default function IPTVPlayer() {
     [initializeStream]
   );
 
-  const categories = [
-    "All",
-    ...Array.from(new Set(channels.map((c) => c.group))),
-  ];
+  const activePlaylist = playlists.find((p) => p.id === activePlaylistId);
+  const isDefaultPlaylist = activePlaylistId === "default";
+  const categories = useMemo(
+    () =>
+      isDefaultPlaylist
+        ? defaultCategories
+        : sortCategoriesByUsefulness([
+          "All",
+          ...Array.from(new Set(channels.map((c) => c.group))),
+        ]),
+    [channels, defaultCategories, isDefaultPlaylist]
+  );
 
-  const filteredChannels = channels.filter((c) => {
-    const matchesCategory =
-      selectedCategory === "All" || c.group === selectedCategory;
-    const matchesSearch = c.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredChannels = useMemo(() => {
+    if (isDefaultPlaylist) return channels;
+
+    return channels.filter((c) => {
+      const matchesCategory =
+        selectedCategory === "All" || c.group === selectedCategory;
+      const matchesSearch = c.name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [channels, isDefaultPlaylist, searchQuery, selectedCategory]);
+
+  const displayedChannelTotal = isDefaultPlaylist
+    ? channelTotal
+    : filteredChannels.length;
+
+  useEffect(() => {
+    const list = channelListRef.current;
+    if (!list) return;
+
+    const measure = () => {
+      const width = list.clientWidth;
+      const nextColumns =
+        width >= 1024 ? 4 : width >= 768 ? 3 : width >= 640 ? 2 : 1;
+      setGridColumns(nextColumns);
+      setListHeight(list.clientHeight);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+
+    return () => observer.disconnect();
+  }, [filteredChannels.length, loading, playlistTab]);
+
+  const maybeLoadMoreChannels = useCallback(() => {
+    if (
+      !isDefaultPlaylist ||
+      loading ||
+      loadingMore ||
+      !hasMoreChannels
+    ) {
+      return;
+    }
+
+    fetchDefaultChannels(nextChannelOffset, "append");
+  }, [
+    fetchDefaultChannels,
+    hasMoreChannels,
+    isDefaultPlaylist,
+    loading,
+    loadingMore,
+    nextChannelOffset,
+  ]);
+
+  const handleChannelListScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      const target = event.currentTarget;
+      setListScrollTop(target.scrollTop);
+
+      if (
+        target.scrollTop + target.clientHeight >=
+        target.scrollHeight - CHANNEL_PREFETCH_DISTANCE
+      ) {
+        maybeLoadMoreChannels();
+      }
+    },
+    [maybeLoadMoreChannels]
+  );
+
+  const virtualRows = Math.ceil(filteredChannels.length / gridColumns);
+  const rowStride = VIRTUAL_ROW_HEIGHT + VIRTUAL_GAP;
+  const overscanRows = Math.max(
+    2,
+    Math.ceil(VIRTUAL_OVERSCAN_CHANNELS / gridColumns)
+  );
+  const startRow = Math.max(
+    0,
+    Math.floor(listScrollTop / rowStride) - overscanRows
+  );
+  const visibleRowCount =
+    Math.ceil((listHeight || 600) / rowStride) + overscanRows * 2;
+  const endRow = Math.min(virtualRows, startRow + visibleRowCount);
+  const virtualChannels = filteredChannels.slice(
+    startRow * gridColumns,
+    endRow * gridColumns
+  );
+  const virtualPaddingTop = startRow * rowStride;
+  const virtualHeight = Math.max(virtualRows * rowStride - VIRTUAL_GAP, 0);
 
   const getInitials = (name: string) => {
     return name
@@ -1539,7 +1804,7 @@ export default function IPTVPlayer() {
                   Total Channels
                 </p>
                 <h3 className="text-base sm:text-lg font-bold text-lime-400 truncate">
-                  {channels.length} Channels
+                  {displayedChannelTotal} Channels
                 </h3>
               </div>
             </div>
@@ -1576,7 +1841,7 @@ export default function IPTVPlayer() {
               <div className="text-[10px] sm:text-xs text-gray-400 bg-white/5 border border-white/5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl max-w-[180px] sm:max-w-[260px] truncate select-none flex items-center gap-1.5 sm:gap-2">
                 <span className="font-semibold shrink-0">Playlist:</span>
                 <span className="text-white font-bold truncate">
-                  {playlists.find((p) => p.id === activePlaylistId)?.name}
+                  {activePlaylist?.name}
                 </span>
               </div>
             </div>
@@ -1596,13 +1861,14 @@ export default function IPTVPlayer() {
                     />
                   </div>
 
-                  {/* Categories horizontally scrollable */}
-                  <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar">
+                  {/* Categories */}
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 max-h-[92px] overflow-y-auto pr-1 pb-1 custom-scrollbar">
                     {categories.map((cat) => (
                       <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
-                        className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap border transition-all ${selectedCategory === cat
+                        title={cat}
+                        className={`max-w-[210px] truncate px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap border transition-all ${selectedCategory === cat
                             ? "bg-primary border-primary text-white shadow-lg shadow-primary/20"
                             : "bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10"
                           }`}
@@ -1614,7 +1880,11 @@ export default function IPTVPlayer() {
                 </div>
 
                 {/* List styled as a responsive grid */}
-                <div className="flex-1 min-h-0 overflow-y-auto pt-3 sm:pt-4 pr-1 custom-scrollbar">
+                <div
+                  ref={channelListRef}
+                  onScroll={handleChannelListScroll}
+                  className="flex-1 min-h-0 overflow-y-auto pt-3 sm:pt-4 pr-1 custom-scrollbar"
+                >
                   {loading ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                       {Array.from({ length: 12 }).map((_, idx) => (
@@ -1635,55 +1905,72 @@ export default function IPTVPlayer() {
                       No channels found match your filters.
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {filteredChannels.map((chan) => {
-                        const isSelected = selectedChannel?.id === chan.id;
-                        return (
-                          <button
-                            key={chan.id}
-                            onClick={() => handleChannelSelect(chan)}
-                            className={`w-full flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left transition-all group ${isSelected
-                                ? "bg-primary/10 border-primary text-primary"
-                                : "bg-white/[0.02] border-white/5 text-white hover:bg-white/[0.05] hover:border-white/10"
-                              }`}
-                          >
-                            {chan.logo ? (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img
-                                src={chan.logo}
-                                alt={chan.name}
-                                onError={(e) => {
-                                  (e.target as HTMLElement).style.display = "none";
-                                }}
-                                className="w-9 h-9 sm:w-10 sm:h-10 object-contain rounded-lg sm:rounded-xl bg-white/5 p-0.5 border border-white/10 group-hover:scale-105 transition-transform"
-                              />
-                            ) : (
-                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-tr from-white/5 to-white/10 flex items-center justify-center font-bold text-xs border border-white/10 text-gray-400 group-hover:text-white transition-colors">
-                                {getInitials(chan.name)}
+                    <div
+                      className="relative"
+                      style={{ height: virtualHeight }}
+                    >
+                      <div
+                        className="absolute left-0 right-0 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
+                        style={{ transform: `translateY(${virtualPaddingTop}px)` }}
+                      >
+                        {virtualChannels.map((chan) => {
+                          const isSelected = selectedChannel?.id === chan.id;
+                          return (
+                            <button
+                              key={chan.id}
+                              onClick={() => handleChannelSelect(chan)}
+                              className={`w-full h-[68px] flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left transition-colors group ${isSelected
+                                  ? "bg-primary/10 border-primary text-primary"
+                                  : "bg-white/[0.02] border-white/5 text-white hover:bg-white/[0.05] hover:border-white/10"
+                                }`}
+                            >
+                              {chan.logo ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                  src={chan.logo}
+                                  alt={chan.name}
+                                  width={40}
+                                  height={40}
+                                  loading="lazy"
+                                  decoding="async"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = "none";
+                                  }}
+                                  className="w-9 h-9 sm:w-10 sm:h-10 object-contain rounded-lg sm:rounded-xl bg-white/5 p-0.5 border border-white/10 group-hover:scale-105 transition-transform flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-tr from-white/5 to-white/10 flex items-center justify-center font-bold text-xs border border-white/10 text-gray-400 group-hover:text-white transition-colors flex-shrink-0">
+                                  {getInitials(chan.name)}
+                                </div>
+                              )}
+
+                              <div className="flex-1 min-w-0">
+                                <p
+                                  className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate ${isSelected ? "text-primary/75" : "text-gray-500"
+                                    }`}
+                                >
+                                  {chan.group}
+                                </p>
+                                <p className="text-[13px] sm:text-sm font-bold truncate">
+                                  {chan.name}
+                                </p>
                               </div>
-                            )}
 
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider ${isSelected ? "text-primary/75" : "text-gray-500"
-                                  }`}
-                              >
-                                {chan.group}
-                              </p>
-                              <p className="text-[13px] sm:text-sm font-bold truncate">
-                                {chan.name}
-                              </p>
-                            </div>
-
-                            {isSelected && (
-                              <Play
-                                size={13}
-                                className="sm:w-3.5 sm:h-3.5 fill-primary text-primary animate-pulse"
-                              />
-                            )}
-                          </button>
-                        );
-                      })}
+                              {isSelected && (
+                                <Play
+                                  size={13}
+                                  className="sm:w-3.5 sm:h-3.5 fill-primary text-primary animate-pulse flex-shrink-0"
+                                />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {loadingMore && (
+                        <div className="absolute left-0 right-0 bottom-0 flex justify-center py-3 text-xs font-bold text-gray-500">
+                          Loading more channels...
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
