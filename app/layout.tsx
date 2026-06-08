@@ -90,6 +90,12 @@ export default function RootLayout({
 
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
+      <head>
+        <link rel="icon" href="/Loopin-Live-Logo.png" sizes="any" />
+        <link rel="shortcut icon" href="/Loopin-Live-Logo.png" />
+        <link rel="apple-touch-icon" href="/Loopin-Live-Logo.png" />
+        <link rel="manifest" href="/manifest.json" />
+      </head>
       <body className="min-h-full flex flex-col">
         {children}
         <ClientPopupWrapper showPopup={showPopup} />

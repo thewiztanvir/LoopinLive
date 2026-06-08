@@ -12,13 +12,7 @@
       "src": "/Loopin-Live-Logo.png",
       "sizes": "2000x2000",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/Loopin-Live-Logo.png",
-      "sizes": "2000x2000",
-      "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ],
   "categories": ["entertainment", "lifestyle"]
