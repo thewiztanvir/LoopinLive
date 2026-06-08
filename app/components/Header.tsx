@@ -33,7 +33,7 @@ export default function Header() {
           >
             <div className="relative w-12 h-12 sm:w-15 sm:h-15 rounded-2xl overflow-hidden border border-white/15 shadow-xl shadow-primary/20 bg-white/5 flex-shrink-0">
               <Image
-                src="/Loopin-Live-Logo.png"
+                src="https://loopinlivetv.netlify.app/Loopin-Live-Logo.png"
                 alt="LoopinLive Logo"
                 fill
                 sizes="(max-width: 640px) 48px, 60px"
