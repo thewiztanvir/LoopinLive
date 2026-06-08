@@ -146,7 +146,7 @@ export default function LoopinLiveStream() {
 
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [submittedSearchQuery, setSubmittedSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   // Playlist Management States
@@ -635,13 +635,19 @@ export default function LoopinLiveStream() {
     }
   }, [activePlaylistId]);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery.trim());
-    }, 250);
-
-    return () => clearTimeout(timeout);
+  const handleSearchSubmit = useCallback(() => {
+    setSubmittedSearchQuery(searchQuery.trim());
   }, [searchQuery]);
+
+  const handleSearchKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleSearchSubmit();
+      }
+    },
+    [handleSearchSubmit]
+  );
 
   const fetchDefaultChannels = useCallback(
     async (offset = 0, mode: "replace" | "append" = "replace") => {
@@ -657,7 +663,7 @@ export default function LoopinLiveStream() {
         const params = new URLSearchParams({
           limit: String(CHANNEL_PAGE_SIZE),
           offset: String(offset),
-          search: debouncedSearchQuery,
+          search: submittedSearchQuery,
           category: selectedCategory,
         });
         const response = await fetch(`/api/iptv/channels?${params.toString()}`);
@@ -708,7 +714,7 @@ export default function LoopinLiveStream() {
         }
       }
     },
-    [debouncedSearchQuery, selectedCategory]
+    [submittedSearchQuery, selectedCategory]
   );
 
   // 1. Fetch built-in channels in pages instead of loading the whole dataset
@@ -730,7 +736,7 @@ export default function LoopinLiveStream() {
       cancelAnimationFrame(animationFrame);
       clearTimeout(timeout);
     };
-  }, [activePlaylistId, debouncedSearchQuery, selectedCategory, fetchDefaultChannels]);
+  }, [activePlaylistId, submittedSearchQuery, selectedCategory, fetchDefaultChannels]);
 
   // Sync active playlist channels to standard list representation
   useEffect(() => {
@@ -1217,7 +1223,7 @@ export default function LoopinLiveStream() {
         selectedCategory === "All" || c.group === selectedCategory;
       const matchesSearch = c.name
         .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+        .includes(submittedSearchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
   }, [channels, isDefaultPlaylist, searchQuery, selectedCategory]);
@@ -1850,16 +1856,29 @@ export default function LoopinLiveStream() {
               <>
                 {/* Search and Filters */}
                 <div className="space-y-3 sm:space-y-4 py-3 sm:py-4 border-b border-white/5">
-                  <div className="relative flex items-center bg-white/5 border border-white/5 focus-within:border-primary/50 rounded-xl sm:rounded-2xl p-1 transition-colors">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSearchSubmit();
+                    }}
+                    className="relative flex items-center gap-2 bg-white/5 border border-white/5 focus-within:border-primary/50 rounded-xl sm:rounded-2xl p-1 transition-colors"
+                  >
                     <Search className="text-gray-500 ml-2.5 sm:ml-3" size={15} />
                     <input
                       type="text"
                       placeholder="Search live TV..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={handleSearchKeyDown}
                       className="flex-1 bg-transparent border-none outline-none py-1.5 sm:py-2 px-2.5 sm:px-3 text-sm text-white placeholder:text-gray-500"
                     />
-                  </div>
+                    <button
+                      type="submit"
+                      className="rounded-xl bg-primary px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-primary-dark"
+                    >
+                      Search
+                    </button>
+                  </form>
 
                   {/* Categories */}
                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 max-h-[92px] overflow-y-auto pr-1 pb-1 custom-scrollbar">
