@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   allowedDevOrigins: ["live.shajon.dev", "192.168.0.106"],
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
