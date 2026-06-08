@@ -15,7 +15,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "loopinlivetv.netlify.app",
+        hostname: "drive.google.com",
+      },
+      {
+        protocol: "https",
+        hostname: "drive.usercontent.google.com",
       },
     ],
   },
