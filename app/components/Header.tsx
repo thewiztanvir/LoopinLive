@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import logo from "../../public/Loopin-Live-Logo.png";
 import { motion } from "motion/react";
 
 export default function Header() {
@@ -33,7 +34,7 @@ export default function Header() {
           >
             <div className="relative w-12 h-12 sm:w-15 sm:h-15 rounded-2xl overflow-hidden border border-white/15 shadow-xl shadow-primary/20 bg-white/5 flex-shrink-0">
               <Image
-                src="/Loopin-Live-Logo.png"
+                src={logo}
                 alt="LoopinLive Logo"
                 fill
                 sizes="(max-width: 640px) 48px, 60px"

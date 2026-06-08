@@ -74,6 +74,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/Loopin-Live-Logo.png",
+    shortcut: "/Loopin-Live-Logo.png",
     apple: "/Loopin-Live-Logo.png",
   },
   manifest: "/manifest.json",
