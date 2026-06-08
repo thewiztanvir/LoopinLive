@@ -33,7 +33,7 @@ export default function Header() {
           >
             <div className="relative w-12 h-12 sm:w-15 sm:h-15 rounded-2xl overflow-hidden border border-white/15 shadow-xl shadow-primary/20 bg-white/5 flex-shrink-0">
               <Image
-                src="https://drive.google.com/uc?export=download&id=1mii50dR1tRStcKZy03-8ierb0p5IyzzS"
+                src="/Loopin-Live-Logo.png"
                 alt="LoopinLive Logo"
                 fill
                 sizes="(max-width: 640px) 48px, 60px"

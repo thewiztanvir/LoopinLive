@@ -1,5 +1,9 @@
 # LoopinLive - Watch Live TV Channels
 
+<p align="center">
+  <img src="public/Loopin-Live-Logo.png" alt="LoopinLive Logo" width="120" />
+</p>
+
 A modern, high-performance, and premium web-based LoopinLive player built with **Next.js 16**, **React 19**, and **Tailwind CSS v4**. Stream high-quality live TV channels directly from official broadcast sources with a cinematic user interface.
 
 **LoopinLive**: https://LoopinLiveTV.netlify.app
