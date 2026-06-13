@@ -143,6 +143,8 @@ export default function LoopinLiveStream() {
   const [hasMoreChannels, setHasMoreChannels] = useState(false);
   const [nextChannelOffset, setNextChannelOffset] = useState(0);
   const [defaultCategories, setDefaultCategories] = useState<string[]>(["All"]);
+  const [fifaChannels, setFifaChannels] = useState<Channel[]>([]);
+  const [fifaLoading, setFifaLoading] = useState(false);
 
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -717,6 +719,21 @@ export default function LoopinLiveStream() {
     [submittedSearchQuery, selectedCategory]
   );
 
+  const fetchFifaChannels = useCallback(async () => {
+    if (fifaChannels.length > 0) return; // already cached
+    setFifaLoading(true);
+    try {
+      const res = await fetch("/api/iptv/fifa");
+      if (!res.ok) throw new Error(`FIFA fetch failed (Status ${res.status})`);
+      const data = (await res.json()) as { channels: Channel[]; total: number };
+      setFifaChannels(data.channels);
+    } catch (err) {
+      console.error("Error fetching FIFA channels:", err);
+    } finally {
+      setFifaLoading(false);
+    }
+  }, [fifaChannels.length]);
+
   // 1. Fetch built-in channels in pages instead of loading the whole dataset
   useEffect(() => {
     if (activePlaylistId !== "default") return;
@@ -737,6 +754,13 @@ export default function LoopinLiveStream() {
       clearTimeout(timeout);
     };
   }, [activePlaylistId, submittedSearchQuery, selectedCategory, fetchDefaultChannels]);
+
+  // FIFA channels: fetch lazily when the FIFA World Cup category pill is selected
+  useEffect(() => {
+    if (selectedCategory === "FIFA World Cup" && activePlaylistId === "default") {
+      fetchFifaChannels();
+    }
+  }, [selectedCategory, activePlaylistId, fetchFifaChannels]);
 
   // Sync active playlist channels to standard list representation
   useEffect(() => {
@@ -1204,6 +1228,7 @@ export default function LoopinLiveStream() {
 
   const activePlaylist = playlists.find((p) => p.id === activePlaylistId);
   const isDefaultPlaylist = activePlaylistId === "default";
+  const isFifaCategory = selectedCategory === "FIFA World Cup" && isDefaultPlaylist;
   const categories = useMemo(
     () =>
       isDefaultPlaylist
@@ -1215,7 +1240,24 @@ export default function LoopinLiveStream() {
     [channels, defaultCategories, isDefaultPlaylist]
   );
 
+  // Inject "FIFA World Cup" right after "All" (before Sports) only for the Default TV playlist
+  const displayedCategories = useMemo(() => {
+    if (!isDefaultPlaylist) return categories;
+    const allIdx = categories.indexOf("All");
+    const injected = [...categories];
+    injected.splice(allIdx + 1, 0, "FIFA World Cup");
+    return injected;
+  }, [categories, isDefaultPlaylist]);
+
   const filteredChannels = useMemo(() => {
+    // FIFA World Cup: source from fifa.json, filtered by search
+    if (isFifaCategory) {
+      if (!submittedSearchQuery) return fifaChannels;
+      return fifaChannels.filter((c) =>
+        c.name.toLowerCase().includes(submittedSearchQuery.toLowerCase())
+      );
+    }
+
     if (isDefaultPlaylist) return channels;
 
     return channels.filter((c) => {
@@ -1226,11 +1268,13 @@ export default function LoopinLiveStream() {
         .includes(submittedSearchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [channels, isDefaultPlaylist, searchQuery, selectedCategory]);
+  }, [channels, fifaChannels, isFifaCategory, isDefaultPlaylist, submittedSearchQuery, selectedCategory]);
 
-  const displayedChannelTotal = isDefaultPlaylist
-    ? channelTotal
-    : filteredChannels.length;
+  const displayedChannelTotal = isFifaCategory
+    ? filteredChannels.length
+    : isDefaultPlaylist
+      ? channelTotal
+      : filteredChannels.length;
 
   useEffect(() => {
     const list = channelListRef.current;
@@ -1254,6 +1298,7 @@ export default function LoopinLiveStream() {
   const maybeLoadMoreChannels = useCallback(() => {
     if (
       !isDefaultPlaylist ||
+      isFifaCategory ||
       loading ||
       loadingMore ||
       !hasMoreChannels
@@ -1265,6 +1310,7 @@ export default function LoopinLiveStream() {
   }, [
     fetchDefaultChannels,
     hasMoreChannels,
+    isFifaCategory,
     isDefaultPlaylist,
     loading,
     loadingMore,
@@ -1882,7 +1928,7 @@ export default function LoopinLiveStream() {
 
                   {/* Categories */}
                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 max-h-[92px] overflow-y-auto pr-1 pb-1 custom-scrollbar">
-                    {categories.map((cat) => (
+                    {displayedCategories.map((cat) => (
                       <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
@@ -1904,7 +1950,7 @@ export default function LoopinLiveStream() {
                   onScroll={handleChannelListScroll}
                   className="flex-1 min-h-0 overflow-y-auto pt-3 sm:pt-4 pr-1 custom-scrollbar"
                 >
-                  {loading ? (
+                  {loading || (isFifaCategory && fifaLoading) ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                       {Array.from({ length: 12 }).map((_, idx) => (
                         <div
