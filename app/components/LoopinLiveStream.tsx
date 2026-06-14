@@ -34,6 +34,8 @@ interface Channel {
   logo: string;
   group: string;
   url: string;
+  kid?: string;
+  key?: string;
 }
 
 interface Playlist {
@@ -134,6 +136,19 @@ function sortCategoriesByUsefulness(categories: string[]) {
   });
 }
 
+function getStreamFormat(url: string): "hls" | "dash" | "unknown" {
+  const cleanUrl = url.split("?")[0].toLowerCase();
+  if (cleanUrl.endsWith(".m3u8") || cleanUrl.includes(".m3u8")) return "hls";
+  if (cleanUrl.endsWith(".mpd") || cleanUrl.includes(".mpd")) return "dash";
+  return "unknown";
+}
+
+function isSafariBrowser(): boolean {
+  if (typeof window === "undefined") return false;
+  const ua = navigator.userAgent.toLowerCase();
+  return ua.includes("safari") && !ua.includes("chrome") && !ua.includes("android");
+}
+
 export default function LoopinLiveStream() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,7 +160,6 @@ export default function LoopinLiveStream() {
   const [defaultCategories, setDefaultCategories] = useState<string[]>(["All"]);
   const [fifaChannels, setFifaChannels] = useState<Channel[]>([]);
   const [fifaLoading, setFifaLoading] = useState(false);
-
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [submittedSearchQuery, setSubmittedSearchQuery] = useState("");
@@ -193,6 +207,7 @@ export default function LoopinLiveStream() {
   const unmuteCleanupRef = useRef<(() => void) | null>(null);
 
   const hlsRef = useRef<Hls | null>(null);
+  const shakaPlayerRef = useRef<any>(null);
   const userMutedRef = useRef(false);
   const isMutedRef = useRef(isMuted);
   const volumeRef = useRef(volume);
@@ -1005,12 +1020,13 @@ export default function LoopinLiveStream() {
 
   // 2. Initialize Hls.js/Native player and load stream
   const initializeStream = useCallback(
-    (chan: Channel, isUserClick: boolean) => {
+    async (chan: Channel, isUserClick: boolean) => {
       const video = videoRef.current;
       if (!video) return;
 
+      const urlToLoad = chan.url;
       setPlayerStatus("loading");
-      loadedUrlRef.current = chan.url;
+      loadedUrlRef.current = urlToLoad;
 
       if (isUserClick) {
         if (!userMutedRef.current) {
@@ -1029,141 +1045,308 @@ export default function LoopinLiveStream() {
         video.muted = isMutedRef.current;
       }
 
+      // 1. Clean up Hls.js
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
 
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: true,
-          backBufferLength: 0,
-          startLevel: -1,
-        });
-        hlsRef.current = hls;
-        hls.attachMedia(video);
-        hls.loadSource(chan.url);
+      // 2. Clean up Shaka Player
+      if (shakaPlayerRef.current) {
+        try {
+          await shakaPlayerRef.current.destroy();
+        } catch (e) {
+          console.error("Error destroying Shaka Player:", e);
+        }
+        shakaPlayerRef.current = null;
+      }
 
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          if (!video.paused) {
-            setPlayerStatus("playing");
-            setIsPaused(false);
-            return;
-          }
+      // Reset video sources
+      video.src = "";
+      video.removeAttribute("src");
+      try {
+        video.load();
+      } catch (e) {
+        // Ignore load interruption
+      }
 
-          video
-            .play()
-            .then(() => {
-              setPlayerStatus("playing");
-              setIsPaused(false);
-            })
-            .catch((err) => {
-              if (err.name === "NotAllowedError") {
-                video.muted = true;
-                setIsMuted(true);
-                video
-                  .play()
-                  .then(() => {
-                    setPlayerStatus("playing");
-                    setIsPaused(false);
-                    setupUnmuteOnInteraction();
-                  })
-                  .catch((playErr) => {
-                    if (playErr.name !== "AbortError") {
-                      console.error("Muted autoplay failed:", playErr);
-                    }
-                    setPlayerStatus("playing");
-                    setIsPaused(true);
-                  });
-              } else {
-                if (err.name !== "AbortError") {
-                  console.warn("Play failed:", err);
-                }
-                setPlayerStatus("playing");
-                setIsPaused(video.paused);
-              }
-            });
-        });
+      // Check if another stream started loading while we were clearing the player
+      if (loadedUrlRef.current !== urlToLoad) return;
 
-        hls.on(Hls.Events.ERROR, (_event: string, data: { fatal: boolean; type: string }) => {
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                console.warn(
-                  "Fatal HLS network error, attempting to recover..."
-                );
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                console.warn(
-                  "Fatal HLS media error, attempting to recover..."
-                );
-                hls.recoverMediaError();
-                break;
-              default:
-                console.error("Fatal unrecoverable HLS error:", data);
+      const format = getStreamFormat(urlToLoad);
+
+      if (format === "dash") {
+        try {
+          // Dynamically import shaka-player compiler
+          // @ts-ignore
+          const shakaModule = await import("shaka-player/dist/shaka-player.compiled");
+          const shaka: any = (shakaModule.default && shakaModule.default.Player) ? shakaModule.default : shakaModule;
+
+          // Check if another stream started loading during import
+          if (loadedUrlRef.current !== urlToLoad) return;
+
+          // Install polyfills
+          shaka.polyfill.installAll();
+
+          if (shaka.Player.isBrowserSupported()) {
+            const player = new shaka.Player(video);
+            shakaPlayerRef.current = player;
+
+            // Configure Shaka player constraints if needed
+            player.addEventListener("error", (event: any) => {
+              if (event.detail && event.detail.severity === shaka.util.Error.Severity.CRITICAL) {
+                console.error("Critical Shaka Error:", event.detail);
                 setPlayerStatus("error");
-                break;
-            }
-          }
-        });
-      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = chan.url;
-
-        const onLoadedMetadata = () => {
-          if (!video.paused) {
-            setPlayerStatus("playing");
-            setIsPaused(false);
-            return;
-          }
-
-          video
-            .play()
-            .then(() => {
-              setPlayerStatus("playing");
-              setIsPaused(false);
-            })
-            .catch((err) => {
-              if (err.name === "NotAllowedError") {
-                video.muted = true;
-                setIsMuted(true);
-                video
-                  .play()
-                  .then(() => {
-                    setPlayerStatus("playing");
-                    setIsPaused(false);
-                    setupUnmuteOnInteraction();
-                  })
-                  .catch((playErr) => {
-                    if (playErr.name !== "AbortError") {
-                      console.error("Native muted autoplay failed:", playErr);
-                    }
-                    setPlayerStatus("playing");
-                    setIsPaused(true);
-                  });
-              } else {
-                if (err.name !== "AbortError") {
-                  console.warn("Native play failed:", err);
-                }
-                setPlayerStatus("playing");
-                setIsPaused(video.paused);
               }
             });
-        };
 
-        const onError = (e: Event) => {
-          console.error("Native video player error:", e);
+            // Configure ClearKeys if provided
+            if (chan.kid?.trim() && chan.key?.trim()) {
+              if (typeof window !== "undefined" && !window.isSecureContext) {
+                throw {
+                  code: 6001,
+                  category: 6,
+                  severity: 2,
+                  message: "DRM decryption requires a Secure Context (HTTPS or localhost). Please watch via localhost or HTTPS."
+                };
+              }
+
+              player.configure({
+                drm: {
+                  clearKeys: {
+                    [chan.kid.trim()]: chan.key.trim()
+                  }
+                }
+              });
+            }
+
+            await player.load(urlToLoad);
+
+            if (loadedUrlRef.current !== urlToLoad) {
+              // Abort if selection changed before loading completed
+              return;
+            }
+
+            // Start playback
+            if (!video.paused) {
+              setPlayerStatus("playing");
+              setIsPaused(false);
+              return;
+            }
+
+            video
+              .play()
+              .then(() => {
+                if (loadedUrlRef.current !== urlToLoad) return;
+                setPlayerStatus("playing");
+                setIsPaused(false);
+              })
+              .catch((err) => {
+                if (loadedUrlRef.current !== urlToLoad) return;
+                if (err.name === "NotAllowedError") {
+                  video.muted = true;
+                  setIsMuted(true);
+                  video
+                    .play()
+                    .then(() => {
+                      if (loadedUrlRef.current !== urlToLoad) return;
+                      setPlayerStatus("playing");
+                      setIsPaused(false);
+                      setupUnmuteOnInteraction();
+                    })
+                    .catch((playErr) => {
+                      if (loadedUrlRef.current !== urlToLoad) return;
+                      if (playErr.name !== "AbortError") {
+                        console.error("Muted Shaka autoplay failed:", playErr);
+                      }
+                      setPlayerStatus("playing");
+                      setIsPaused(true);
+                    });
+                } else {
+                  if (err.name !== "AbortError") {
+                    console.warn("Shaka play failed:", err);
+                  }
+                  setPlayerStatus("playing");
+                  setIsPaused(video.paused);
+                }
+              });
+          } else {
+            setError("Your browser does not support DASH stream playback.");
+            setPlayerStatus("error");
+          }
+        } catch (err: any) {
+          console.error("Failed to initialize Shaka Player. Details:", {
+            code: err?.code,
+            category: err?.category,
+            severity: err?.severity,
+            message: err?.message,
+            data: err?.data,
+            error: err
+          });
+
+          let displayError = "Error loading DASH player.";
+          if (err && err.code === 6001) {
+            if (typeof window !== "undefined" && !window.isSecureContext) {
+              displayError = "DASH Playback Error: DRM streams require HTTPS or localhost (Secure Context) for decryption.";
+            } else {
+              displayError = "DASH Playback Error: DRM key system not supported. Please check if DRM/Protected Content is enabled in your browser settings.";
+            }
+          } else if (err && err.message) {
+            displayError = `DASH Playback Error: ${err.message}`;
+          } else if (err && err.code) {
+            displayError = `DASH Playback Error: Code ${err.code} (Category: ${err.category})`;
+          }
+
+          setError(displayError);
           setPlayerStatus("error");
-        };
-
-        video.addEventListener("loadedmetadata", onLoadedMetadata, {
-          once: true,
-        });
-        video.addEventListener("error", onError, { once: true });
+        }
       } else {
-        setError("Your browser does not support HLS stream playback.");
-        setPlayerStatus("error");
+        // HLS or unknown format (fallback to HLS detection)
+        const isSafari = isSafariBrowser();
+
+        if (Hls.isSupported() && !isSafari) {
+          const hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+            backBufferLength: 0,
+            startLevel: -1,
+          });
+          hlsRef.current = hls;
+          hls.attachMedia(video);
+          hls.loadSource(urlToLoad);
+
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            if (loadedUrlRef.current !== urlToLoad) return;
+            if (!video.paused) {
+              setPlayerStatus("playing");
+              setIsPaused(false);
+              return;
+            }
+
+            video
+              .play()
+              .then(() => {
+                if (loadedUrlRef.current !== urlToLoad) return;
+                setPlayerStatus("playing");
+                setIsPaused(false);
+              })
+              .catch((err) => {
+                if (loadedUrlRef.current !== urlToLoad) return;
+                if (err.name === "NotAllowedError") {
+                  video.muted = true;
+                  setIsMuted(true);
+                  video
+                    .play()
+                    .then(() => {
+                      if (loadedUrlRef.current !== urlToLoad) return;
+                      setPlayerStatus("playing");
+                      setIsPaused(false);
+                      setupUnmuteOnInteraction();
+                    })
+                    .catch((playErr) => {
+                      if (loadedUrlRef.current !== urlToLoad) return;
+                      if (playErr.name !== "AbortError") {
+                        console.error("Muted autoplay failed:", playErr);
+                      }
+                      setPlayerStatus("playing");
+                      setIsPaused(true);
+                    });
+                } else {
+                  if (err.name !== "AbortError") {
+                    console.warn("Play failed:", err);
+                  }
+                  setPlayerStatus("playing");
+                  setIsPaused(video.paused);
+                }
+              });
+          });
+
+          hls.on(Hls.Events.ERROR, (_event: string, data: { fatal: boolean; type: string }) => {
+            if (loadedUrlRef.current !== urlToLoad) return;
+            if (data.fatal) {
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  console.warn(
+                    "Fatal HLS network error, attempting to recover..."
+                  );
+                  hls.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  console.warn(
+                    "Fatal HLS media error, attempting to recover..."
+                  );
+                  hls.recoverMediaError();
+                  break;
+                default:
+                  console.error("Fatal unrecoverable HLS error:", data);
+                  setPlayerStatus("error");
+                  break;
+              }
+            }
+          });
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          video.src = urlToLoad;
+
+          const onLoadedMetadata = () => {
+            if (loadedUrlRef.current !== urlToLoad) return;
+            if (!video.paused) {
+              setPlayerStatus("playing");
+              setIsPaused(false);
+              return;
+            }
+
+            video
+              .play()
+              .then(() => {
+                if (loadedUrlRef.current !== urlToLoad) return;
+                setPlayerStatus("playing");
+                setIsPaused(false);
+              })
+              .catch((err) => {
+                if (loadedUrlRef.current !== urlToLoad) return;
+                if (err.name === "NotAllowedError") {
+                  video.muted = true;
+                  setIsMuted(true);
+                  video
+                    .play()
+                    .then(() => {
+                      if (loadedUrlRef.current !== urlToLoad) return;
+                      setPlayerStatus("playing");
+                      setIsPaused(false);
+                      setupUnmuteOnInteraction();
+                    })
+                    .catch((playErr) => {
+                      if (loadedUrlRef.current !== urlToLoad) return;
+                      if (playErr.name !== "AbortError") {
+                        console.error("Native muted autoplay failed:", playErr);
+                      }
+                      setPlayerStatus("playing");
+                      setIsPaused(true);
+                    });
+                } else {
+                  if (err.name !== "AbortError") {
+                    console.warn("Native play failed:", err);
+                  }
+                  setPlayerStatus("playing");
+                  setIsPaused(video.paused);
+                }
+              });
+          };
+
+          const onError = (e: Event) => {
+            if (loadedUrlRef.current !== urlToLoad) return;
+            console.error("Native video player error:", e);
+            setPlayerStatus("error");
+          };
+
+          video.addEventListener("loadedmetadata", onLoadedMetadata, {
+            once: true,
+          });
+          video.addEventListener("error", onError, { once: true });
+        } else {
+          setError("Your browser does not support HLS stream playback.");
+          setPlayerStatus("error");
+        }
       }
 
       if (isUserClick) {
@@ -1186,13 +1369,17 @@ export default function LoopinLiveStream() {
     }
   }, [selectedChannel, retryKey, initializeStream]);
 
-  // Clean up Hls and video elements on component unmount
+  // Clean up Hls, Shaka, and video elements on component unmount
   useEffect(() => {
     const video = videoRef.current;
     return () => {
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
+      }
+      if (shakaPlayerRef.current) {
+        shakaPlayerRef.current.destroy();
+        shakaPlayerRef.current = null;
       }
       if (video) {
         video.src = "";

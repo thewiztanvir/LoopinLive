@@ -46,7 +46,7 @@ If you need the channel database in standard M3U format, you can use the built-i
 
 ### Usage
 
-1. **Quick Conversion** (using defaults: `app/data/channels.json` ➔ `app/data/channels.m3u`):
+1. **Quick Conversion** (using defaults: all JSON files in `app/data` ➔ corresponding `.m3u` files):
    ```bash
    npm run convert-m3u
    ```
@@ -56,7 +56,7 @@ If you need the channel database in standard M3U format, you can use the built-i
    ```
 
 2. **Custom Paths**:
-   If you have a custom JSON database or want to output to a specific location:
+   If you want to convert a specific JSON database only:
    ```bash
    node scripts/json-to-m3u.js <path-to-input.json> <path-to-output.m3u>
    ```

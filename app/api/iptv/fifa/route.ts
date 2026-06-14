@@ -33,6 +33,8 @@ export async function GET() {
       logo: ch.logo || "",
       group: "FIFA World Cup",
       url: ch.url,
+      kid: ch.kid,
+      key: ch.key,
     }));
 
     return NextResponse.json(

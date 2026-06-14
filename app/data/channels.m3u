@@ -1043,13 +1043,11 @@ https://cloudfront44.lexanetwork.com:1344/freerelay/zuglotv.sdp/playlist.m3u8
 https://5d94523502c2d.streamlock.net/home/mystream/playlist.m3u8
 #EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/en/a/a1/Nova-web1-228x150.jpg" group-title="Ireland",Radio Nova
 https://stream.audioxi.com/NOVA
-#EXTINF:-1 tvg-logo="https://i.imgur.com/pttM3KQ.png" group-title="Israel",9 канал Ⓨ
-https://www.youtube.com/@israel9tv/live
 #EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/commons/c/cb/FM104_logo_tile.png" group-title="Ireland",FM104
 https://wg.cdn.tibus.net/fm104MP3128
 #EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/commons/2/2e/Spin_400x400.png" group-title="Ireland",Spin 103.8
 https://stream.audioxi.com/SP
-#EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/he/thumb/1/17/Reshet13Logo2022.svg/559px-Reshet13Logo2022.svg.png" group-title="Israel",ערוץ 13
+#EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/he/thumb/1/17/Reshet13Logo2022.svg/559px-Reshet13Logo2022.svg.png" group-title="Palestine",ערוץ 13
 https://d2xg1g9o5vns8m.cloudfront.net/out/v1/0855d703f7d5436fae6a9c7ce8ca5075/index.m3u8
 #EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/98FM_2022.svg/1920px-98FM_2022.svg.png" group-title="Ireland",98FM
 https://stream.audioxi.com/98
@@ -1687,6 +1685,8 @@ https://live.vtv.mk/live/vtv/chunks.m3u8
 https://frikanalen.no/stream/index.m3u8
 #EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/4fun.tv_Logo_%282017%29.svg/640px-4fun.tv_Logo_%282017%29.svg.png" group-title="Poland",4fun.tv Ⓢ
 https://stream.4fun.tv:8888/hls/4f_high/index.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/pttM3KQ.png" group-title="Palestine",9 канал Ⓨ
+https://www.youtube.com/@israel9tv/live
 #EXTINF:-1 tvg-logo="https://i.imgur.com/ljpK6dZ.png" group-title="Poland",TV Republika
 https://redir.cache.orange.pl/jupiter/o1-cl7/ssl/live/tvrepublika/live.m3u8
 #EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/TVP2_logo.svg/640px-TVP2_logo.svg.png" group-title="Poland",TVP2
@@ -7375,8 +7375,6 @@ https://live-cf-kalaignarnews.dailyhunt.in/master.m3u8
 https://juicex.nz/hls/mystream.m3u8
 #EXTINF:-1 tvg-logo="https://i.imgur.com/XWXFoJA.png" group-title="Music",Kalika TV (576p)
 http://server.applelive.in/kalikatv/kalikatv.m3u8
-#EXTINF:-1 tvg-logo="https://i.imgur.com/VxAHOgr.png" group-title="Religious",Kabbalah for the People (Israel) (504p) [Not 24/7]
-https://edge3.uk.kab.tv/live/tv66-heb-high/playlist.m3u8
 #EXTINF:-1 tvg-logo="https://dtil.tmsimg.com/assets/s143561_ld_h15_aa.png?lock=720x540" group-title="Entertainment",Kalaignar Murasu (396p)
 https://yuppmedtaorire.akamaized.net/v1/master/a0d007312bfd99c47f76b77ae26b1ccdaae76cb1/murasu_nim_https/050522/murasu/playlist.m3u8
 #EXTINF:-1 tvg-logo="https://i.imgur.com/RsKKULI.png" group-title="Religious",Kalemeh TV
