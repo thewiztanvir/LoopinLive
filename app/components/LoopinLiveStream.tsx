@@ -180,8 +180,10 @@ export default function LoopinLiveStream() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [playerStatus, setPlayerStatus] = useState<
-    "idle" | "loading" | "playing" | "error"
+    "idle" | "playing" | "loading" | "error"
   >("idle");
+  const [playerError, setPlayerError] = useState<string | null>(null);
+  const [lastSuccessfulChannel, setLastSuccessfulChannel] = useState<Channel | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerWrapperRef = useRef<HTMLDivElement>(null);
@@ -224,6 +226,14 @@ export default function LoopinLiveStream() {
   useEffect(() => {
     volumeRef.current = volume;
   }, [volume]);
+
+  // Synchronize player success state
+  useEffect(() => {
+    if (playerStatus === "playing" && selectedChannel) {
+      setPlayerError(null);
+      setLastSuccessfulChannel(selectedChannel);
+    }
+  }, [playerStatus, selectedChannel]);
 
   // YouTube-like Double Tap Seek State
   const [activeSeekIndicator, setActiveSeekIndicator] = useState<{
@@ -1026,6 +1036,7 @@ export default function LoopinLiveStream() {
 
       const urlToLoad = chan.url;
       setPlayerStatus("loading");
+      setPlayerError(null);
       loadedUrlRef.current = urlToLoad;
 
       if (isUserClick) {
@@ -1080,22 +1091,40 @@ export default function LoopinLiveStream() {
           // Dynamically import shaka-player compiler
           // @ts-ignore
           const shakaModule = await import("shaka-player/dist/shaka-player.compiled");
+
+          console.log("Shaka module resolution debug:", {
+            moduleKeys: Object.keys(shakaModule || {}),
+            hasDefault: !!shakaModule?.default,
+            defaultKeys: Object.keys(shakaModule?.default || {}),
+          });
+
           const shaka: any = (shakaModule.default && shakaModule.default.Player) ? shakaModule.default : shakaModule;
+
+          console.log("Resolved Shaka object debug:", {
+            hasPolyfill: !!shaka?.polyfill,
+            hasPlayer: !!shaka?.Player,
+            hasUtil: !!shaka?.util,
+          });
 
           // Check if another stream started loading during import
           if (loadedUrlRef.current !== urlToLoad) return;
 
           // Install polyfills
-          shaka.polyfill.installAll();
+          if (shaka && shaka.polyfill && typeof shaka.polyfill.installAll === "function") {
+            shaka.polyfill.installAll();
+          } else {
+            console.warn("Shaka polyfill installer not found.");
+          }
 
-          if (shaka.Player.isBrowserSupported()) {
+          if (shaka && shaka.Player && typeof shaka.Player.isBrowserSupported === "function" && shaka.Player.isBrowserSupported()) {
             const player = new shaka.Player(video);
             shakaPlayerRef.current = player;
 
             // Configure Shaka player constraints if needed
             player.addEventListener("error", (event: any) => {
-              if (event.detail && event.detail.severity === shaka.util.Error.Severity.CRITICAL) {
+              if (event.detail && shaka?.util?.Error?.Severity && event.detail.severity === shaka.util.Error.Severity.CRITICAL) {
                 console.error("Critical Shaka Error:", event.detail);
+                setPlayerError(`Critical DASH Error: Code ${event.detail.code}`);
                 setPlayerStatus("error");
               }
             });
@@ -1103,12 +1132,11 @@ export default function LoopinLiveStream() {
             // Configure ClearKeys if provided
             if (chan.kid?.trim() && chan.key?.trim()) {
               if (typeof window !== "undefined" && !window.isSecureContext) {
-                throw {
-                  code: 6001,
-                  category: 6,
-                  severity: 2,
-                  message: "DRM decryption requires a Secure Context (HTTPS or localhost). Please watch via localhost or HTTPS."
-                };
+                const drmErr = new Error("DRM decryption requires a Secure Context (HTTPS or localhost). Please watch via localhost or HTTPS.");
+                (drmErr as any).code = 6001;
+                (drmErr as any).category = 6;
+                (drmErr as any).severity = 2;
+                throw drmErr;
               }
 
               player.configure({
@@ -1171,18 +1199,14 @@ export default function LoopinLiveStream() {
                 }
               });
           } else {
-            setError("Your browser does not support DASH stream playback.");
+            setPlayerError("Your browser does not support DASH stream playback.");
             setPlayerStatus("error");
           }
         } catch (err: any) {
-          console.error("Failed to initialize Shaka Player. Details:", {
-            code: err?.code,
-            category: err?.category,
-            severity: err?.severity,
-            message: err?.message,
-            data: err?.data,
-            error: err
-          });
+          console.error("Failed to initialize Shaka Player. Error object:", err);
+          if (err && err.stack) {
+            console.error("Failed to initialize Shaka Player. Stack trace:", err.stack);
+          }
 
           let displayError = "Error loading DASH player.";
           if (err && err.code === 6001) {
@@ -1191,13 +1215,21 @@ export default function LoopinLiveStream() {
             } else {
               displayError = "DASH Playback Error: DRM key system not supported. Please check if DRM/Protected Content is enabled in your browser settings.";
             }
+          } else if (err && err.code === 1001) {
+            displayError = "DASH Playback Error: The stream server is offline, unreachable, or geoblocked (Network Error 1001).";
+          } else if (err && err.code === 1002) {
+            displayError = "DASH Playback Error: The stream server returned an invalid response (HTTP Error 1002).";
+          } else if (err && err.code === 6007) {
+            displayError = "DASH Playback Error: The stream is encrypted but no DRM information or keys were found (Error 6007).";
+          } else if (err && err.code === 6012) {
+            displayError = "DASH Playback Error: Failed to generate license request (Error 6012). Check your browser DRM settings.";
           } else if (err && err.message) {
             displayError = `DASH Playback Error: ${err.message}`;
           } else if (err && err.code) {
             displayError = `DASH Playback Error: Code ${err.code} (Category: ${err.category})`;
           }
 
-          setError(displayError);
+          setPlayerError(displayError);
           setPlayerStatus("error");
         }
       } else {
@@ -1261,7 +1293,7 @@ export default function LoopinLiveStream() {
               });
           });
 
-          hls.on(Hls.Events.ERROR, (_event: string, data: { fatal: boolean; type: string }) => {
+          hls.on(Hls.Events.ERROR, (_event: string, data: { fatal: boolean; type: string; details?: string }) => {
             if (loadedUrlRef.current !== urlToLoad) return;
             if (data.fatal) {
               switch (data.type) {
@@ -1279,6 +1311,7 @@ export default function LoopinLiveStream() {
                   break;
                 default:
                   console.error("Fatal unrecoverable HLS error:", data);
+                  setPlayerError("Fatal unrecoverable HLS error: " + (data.details || data.type));
                   setPlayerStatus("error");
                   break;
               }
@@ -1336,6 +1369,7 @@ export default function LoopinLiveStream() {
           const onError = (e: Event) => {
             if (loadedUrlRef.current !== urlToLoad) return;
             console.error("Native video player error:", e);
+            setPlayerError("Native video player error occurred while loading this stream.");
             setPlayerStatus("error");
           };
 
@@ -1344,7 +1378,7 @@ export default function LoopinLiveStream() {
           });
           video.addEventListener("error", onError, { once: true });
         } else {
-          setError("Your browser does not support HLS stream playback.");
+          setPlayerError("Your browser does not support HLS stream playback.");
           setPlayerStatus("error");
         }
       }
@@ -1804,22 +1838,47 @@ export default function LoopinLiveStream() {
 
               {/* Error/Offline Overlay */}
               {playerStatus === "error" && (
-                <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center gap-4 z-10 px-6 text-center">
-                  <ShieldAlert className="text-rose-500" size={40} />
-                  <span className="text-base font-bold text-white">
-                    Stream Currently Unavailable
+                <div className="absolute inset-0 bg-black/95 flex flex-col items-center justify-center gap-4 z-10 px-6 text-center backdrop-blur-sm">
+                  <ShieldAlert className="text-rose-500 animate-pulse" size={44} />
+                  <span className="text-base font-bold text-white tracking-wide">
+                    Playback Failure
                   </span>
-                  <span className="text-xs text-gray-500 max-w-sm">
-                    This live TV link might be offline, or blocked by the
-                    original broadcaster.
+                  <span className="text-xs text-rose-400 font-semibold max-w-md bg-rose-500/10 border border-rose-500/20 px-4 py-2 rounded-xl">
+                    {playerError || "Stream Currently Unavailable"}
                   </span>
-                  <button
-                    onClick={handleReload}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-xs font-bold rounded-xl border border-white/10 transition-colors"
-                  >
-                    <RefreshCw size={12} />
-                    <span>Try Reconnecting</span>
-                  </button>
+                  <span className="text-xs text-gray-400 max-w-xs leading-relaxed">
+                    The link may be offline, geoblocked, or requires secure connection.
+                  </span>
+                  
+                  <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
+                    <button
+                      onClick={() => selectedChannel && initializeStream(selectedChannel, true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-xs font-bold rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer"
+                    >
+                      <RefreshCw size={12} />
+                      <span>Retry Playback</span>
+                    </button>
+
+                    {lastSuccessfulChannel && lastSuccessfulChannel.id !== selectedChannel?.id && (
+                      <button
+                        onClick={() => handleChannelSelect(lastSuccessfulChannel)}
+                        className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-xs font-bold rounded-xl border border-white/5 transition-all active:scale-95 cursor-pointer"
+                      >
+                        <span>Back to {lastSuccessfulChannel.name}</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setPlayerStatus("idle");
+                        setPlayerError(null);
+                        setSelectedChannel(null);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-xs font-medium text-gray-300 rounded-xl border border-white/5 transition-all cursor-pointer"
+                    >
+                      <span>Dismiss / Browse</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
