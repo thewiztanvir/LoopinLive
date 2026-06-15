@@ -580,14 +580,15 @@ function MatchCard({
   const isLive = match.status === "LIVE" || match.status === "HT";
 
   return (
-    <button
+    <div
+      role="button"
       tabIndex={0}
       onClick={onSelect}
       onKeyDown={(e) => {
-        if (e.key === "Enter") onSelect();
+        if (e.key === "Enter" || e.key === " ") onSelect();
       }}
       className={`w-full text-left bg-white/[0.02] border border-white/5 rounded-2xl p-4 transition-all duration-200
-        hover:bg-white/[0.05] hover:border-white/10
+        hover:bg-white/[0.05] hover:border-white/10 cursor-pointer
         focus:outline-none focus:ring-2 focus:ring-primary/50 focus:shadow-[0_0_15px_rgba(27,226,27,0.3)]
         ${isLive ? "border-l-4 border-l-rose-500" : ""}
         ${isSelected ? "ring-2 ring-primary/40 bg-white/[0.04]" : ""}`}
@@ -681,7 +682,7 @@ function MatchCard({
           </span>
         )}
       </div>
-    </button>
+    </div>
   );
 }
 
