@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Trophy,
@@ -221,6 +221,37 @@ function SkeletonCard() {
   );
 }
 
+// ─── ScoreDisplay ────────────────────────────────────────────────────────────
+// Detects score changes and fires a CSS flash animation without re-mounting.
+function ScoreDisplay({ value, winning }: { value: number; winning: boolean }) {
+  const prevRef = useRef(value);
+  const [flash, setFlash] = useState(false);
+
+  useEffect(() => {
+    if (prevRef.current !== value) {
+      prevRef.current = value;
+      setFlash(true);
+      const t = setTimeout(() => setFlash(false), 900);
+      return () => clearTimeout(t);
+    }
+  }, [value]);
+
+  return (
+    <span
+      className={`text-2xl font-black tabular-nums leading-none ${
+        flash
+          ? "score-flash"
+          : winning
+          ? "text-white"
+          : "text-white/50"
+      }`}
+    >
+      {value}
+    </span>
+  );
+}
+
+// ─── StatBar ─────────────────────────────────────────────────────────────────
 function StatBar({
   label,
   homeVal,
@@ -431,8 +462,8 @@ export default function SportsHub({
               </div>
             )}
 
-            {/* Match Sections */}
-            {!loading && matches.length > 0 && (
+            {/* Match Sections — always visible; skeletons shown only on initial load */}
+            {matches.length > 0 && (
               <div className="flex flex-col gap-5">
                 {/* LIVE NOW */}
                 {liveMatches.length > 0 && (
@@ -680,23 +711,17 @@ function MatchCard({
               </span>
             </div>
           ) : (
-            // Score display
+            // Score display with flash-on-change
             <div className="flex flex-col items-center gap-1">
-              <span
-                className={`text-2xl font-black tabular-nums leading-none ${
-                  match.homeScore > match.awayScore ? "text-white" : "text-white/50"
-                }`}
-              >
-                {match.homeScore}
-              </span>
+              <ScoreDisplay
+                value={match.homeScore}
+                winning={match.homeScore > match.awayScore}
+              />
               <div className="w-5 h-px bg-white/10" />
-              <span
-                className={`text-2xl font-black tabular-nums leading-none ${
-                  match.awayScore > match.homeScore ? "text-white" : "text-white/50"
-                }`}
-              >
-                {match.awayScore}
-              </span>
+              <ScoreDisplay
+                value={match.awayScore}
+                winning={match.awayScore > match.homeScore}
+              />
             </div>
           )}
         </div>

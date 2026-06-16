@@ -186,6 +186,9 @@ export default function LoopinLiveStream() {
   const [footballMatches, setFootballMatches] = useState<any[]>([]);
   const [footballStandings, setFootballStandings] = useState<any[]>([]);
   const [footballLoading, setFootballLoading] = useState<boolean>(false);
+  // Tracks the very first fetch — skeletons only show during this phase
+  const [footballInitialLoading, setFootballInitialLoading] = useState<boolean>(true);
+  const footballHasLoadedRef = useRef(false);
   const [footballLastUpdated, setFootballLastUpdated] = useState<Date | null>(null);
   const [isSportsHudOpen, setIsSportsHudOpen] = useState<boolean>(false);
 
@@ -255,9 +258,19 @@ export default function LoopinLiveStream() {
         setFootballMatches(data.matches || []);
         setFootballStandings(data.standings || []);
         setFootballLastUpdated(new Date());
+        // Mark initial load complete on first successful fetch
+        if (!footballHasLoadedRef.current) {
+          footballHasLoadedRef.current = true;
+          setFootballInitialLoading(false);
+        }
       }
     } catch (err) {
       console.error("Error fetching football data:", err);
+      // If first fetch fails, still clear the skeleton so we can show empty state
+      if (!footballHasLoadedRef.current) {
+        footballHasLoadedRef.current = true;
+        setFootballInitialLoading(false);
+      }
     } finally {
       setFootballLoading(false);
     }
@@ -2396,7 +2409,7 @@ export default function LoopinLiveStream() {
                 <SportsHub
                   matches={footballMatches}
                   standings={footballStandings}
-                  loading={footballLoading}
+                  loading={footballInitialLoading}
                   lastUpdated={footballLastUpdated}
                   onTuneToChannel={handleTuneToChannelByName}
                 />
