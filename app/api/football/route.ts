@@ -286,37 +286,24 @@ function mapStats(
 //   - No goalsFor/goalsAgainst available; use 0
 // ---------------------------------------------------------------------------
 function mapStandings(
-  summaryStandings: {
-    groups?: Array<{
-      name?: string;
-      abbreviation?: string;
-      standings?: {
-        entries?: Array<{
-          team?: string;
-          logo?: Array<{ href?: string }>;
-          stats?: Array<{ name: string; value?: number; displayValue?: string }>;
-        }>;
-      };
-    }>;
-  },
+  standingsData: any,
   leagueName: string
 ): CompetitionStandings[] {
   try {
-    const groups = summaryStandings?.groups ?? [];
-    if (groups.length === 0) return [];
+    const children = standingsData?.children ?? [];
+    if (children.length === 0) return [];
 
-    const mapGroup = (
-      group: (typeof groups)[0],
-      index: number
-    ): CompetitionStandings | null => {
-      const entries = group.standings?.entries ?? [];
-      if (entries.length === 0) return null;
+    const result: CompetitionStandings[] = [];
 
-      const table: StandingTeam[] = entries.map((entry, i) => {
+    children.forEach((child: any) => {
+      const entries = child.standings?.entries ?? [];
+      if (entries.length === 0) return;
+
+      const table: StandingTeam[] = entries.map((entry: any, i: number) => {
         const stats = entry.stats ?? [];
 
         const getStat = (name: string): number => {
-          const s = stats.find((s) => s.name === name);
+          const s = stats.find((s: any) => s.name === name);
           if (!s) return 0;
           const v = s.value ?? parseInt(s.displayValue ?? "0", 10);
           return isNaN(Number(v)) ? 0 : Number(v);
@@ -330,11 +317,25 @@ function mapStandings(
         const points = getStat("points");
         const gd = getStat("pointDifferential");
 
-        const logo = Array.isArray(entry.logo) ? (entry.logo[0]?.href ?? "") : "";
+        // Resolve logo: handles both dedicated standings (team object) and scoreboard standings (logo array)
+        let logo = "";
+        if (entry.team && typeof entry.team === "object") {
+          logo = entry.team.logos?.[0]?.href ?? "";
+        } else if (Array.isArray(entry.logo)) {
+          logo = entry.logo[0]?.href ?? "";
+        }
+
+        // Resolve team name
+        let name = "";
+        if (entry.team && typeof entry.team === "object") {
+          name = entry.team.displayName || entry.team.name || "";
+        } else {
+          name = String(entry.team ?? "");
+        }
 
         return {
           position: rank,
-          name: entry.team ?? "",
+          name,
           logo,
           played,
           won,
@@ -350,19 +351,24 @@ function mapStandings(
 
       table.sort((a, b) => a.position - b.position);
 
-      // Derive group label: use abbreviation (e.g. "A") or name or fallback index
-      const rawLabel = group.abbreviation || group.name || "";
-      const groupName = rawLabel
-        ? rawLabel.startsWith("Group") ? rawLabel : `Group ${rawLabel}`
-        : groups.length > 1 ? `Group ${String.fromCharCode(65 + index)}` : undefined;
+      const childName = child.name || child.abbreviation || "";
+      const isGroup = childName.toLowerCase().includes("group");
+      
+      let groupName: string | undefined = undefined;
+      if (isGroup || children.length > 1) {
+        groupName = childName.startsWith("Group") ? childName : `Group ${childName}`;
+      }
 
-      return { competition: leagueName, groupName, table };
-    };
+      result.push({
+        competition: leagueName,
+        groupName,
+        table,
+      });
+    });
 
-    return groups
-      .map((g, i) => mapGroup(g, i))
-      .filter((s): s is CompetitionStandings => s !== null);
-  } catch {
+    return result;
+  } catch (err) {
+    console.error("[football/route] Error parsing standings:", err);
     return [];
   }
 }
@@ -474,6 +480,23 @@ async function fetchSummary(leagueSlug: string, matchId: string): Promise<Record
     return (await res.json()) as Record<string, unknown>;
   } catch (err) {
     console.error(`[football/route] fetchSummary failed for ${matchId}:`, err);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fetch dedicated standings for a league
+// ---------------------------------------------------------------------------
+async function fetchStandings(leagueSlug: string): Promise<Record<string, unknown> | null> {
+  try {
+    const res = await fetch(
+      `${ESPN_BASE}/${leagueSlug}/standings`,
+      { headers: ESPN_HEADERS }
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as Record<string, unknown>;
+  } catch (err) {
+    console.error(`[football/route] fetchStandings failed for ${leagueSlug}:`, err);
     return null;
   }
 }
@@ -760,25 +783,22 @@ export async function GET(request: Request) {
     });
 
     // -----------------------------------------------------------------------
-    // Step 5 — Build standings from summary data (supports multi-group tournaments)
+    // Step 5 — Fetch and build standings from dedicated standings endpoints
     // -----------------------------------------------------------------------
+    const standingsResults = await Promise.all(
+      LEAGUES.map((l) =>
+        fetchStandings(l.slug).then((data) => ({
+          leagueName: l.name,
+          data,
+        }))
+      )
+    );
+
     const standings: CompetitionStandings[] = [];
-    const seenStandingsLeagues = new Set<string>();
-
-    for (const [slug, repMatch] of Object.entries(standingsRepresentative)) {
-      if (seenStandingsLeagues.has(slug)) continue;
-
-      const summary = summaryMap.get(repMatch.id);
-      if (!summary?.standings) continue;
-
-      const groups = mapStandings(
-        summary.standings as Parameters<typeof mapStandings>[0],
-        repMatch.competition
-      );
-
-      if (groups.length > 0) {
+    for (const item of standingsResults) {
+      if (item.data) {
+        const groups = mapStandings(item.data, item.leagueName);
         standings.push(...groups);
-        seenStandingsLeagues.add(slug);
       }
     }
 
