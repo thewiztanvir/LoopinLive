@@ -111,6 +111,7 @@ export interface StandingTeam {
 
 export interface CompetitionStandings {
   competition: string;
+  groupName?: string; // e.g. "Group A" for tournaments with multiple groups
   table: StandingTeam[];
 }
 
@@ -287,6 +288,8 @@ function mapStats(
 function mapStandings(
   summaryStandings: {
     groups?: Array<{
+      name?: string;
+      abbreviation?: string;
       standings?: {
         entries?: Array<{
           team?: string;
@@ -297,65 +300,86 @@ function mapStandings(
     }>;
   },
   leagueName: string
-): CompetitionStandings | null {
+): CompetitionStandings[] {
   try {
-    const entries =
-      summaryStandings?.groups?.[0]?.standings?.entries ?? [];
-    if (entries.length === 0) return null;
+    const groups = summaryStandings?.groups ?? [];
+    if (groups.length === 0) return [];
 
-    const table: StandingTeam[] = entries.map((entry, i) => {
-      const stats = entry.stats ?? [];
+    const mapGroup = (
+      group: (typeof groups)[0],
+      index: number
+    ): CompetitionStandings | null => {
+      const entries = group.standings?.entries ?? [];
+      if (entries.length === 0) return null;
 
-      const getStat = (name: string): number => {
-        const s = stats.find((s) => s.name === name);
-        if (!s) return 0;
-        const v = s.value ?? parseInt(s.displayValue ?? "0", 10);
-        return isNaN(Number(v)) ? 0 : Number(v);
-      };
+      const table: StandingTeam[] = entries.map((entry, i) => {
+        const stats = entry.stats ?? [];
 
-      const rank = getStat("rank") || i + 1;
-      const won = getStat("wins");
-      const lost = getStat("losses");
-      const drawn = getStat("ties");
-      const played = getStat("gamesPlayed");
-      const points = getStat("points");
-      const gd = getStat("pointDifferential");
+        const getStat = (name: string): number => {
+          const s = stats.find((s) => s.name === name);
+          if (!s) return 0;
+          const v = s.value ?? parseInt(s.displayValue ?? "0", 10);
+          return isNaN(Number(v)) ? 0 : Number(v);
+        };
 
-      // Logo is a separate array on the entry (confirmed from API)
-      const logo = Array.isArray(entry.logo) ? (entry.logo[0]?.href ?? "") : "";
+        const rank = getStat("rank") || i + 1;
+        const won = getStat("wins");
+        const lost = getStat("losses");
+        const drawn = getStat("ties");
+        const played = getStat("gamesPlayed");
+        const points = getStat("points");
+        const gd = getStat("pointDifferential");
 
-      return {
-        position: rank,
-        name: entry.team ?? "",      // team is a plain string
-        logo,
-        played,
-        won,
-        drawn,
-        lost,
-        points,
-        goalsFor: 0,               // not available from this endpoint
-        goalsAgainst: 0,
-        goalDifference: gd,
-        form: [] as ("W" | "D" | "L")[],
-      };
-    });
+        const logo = Array.isArray(entry.logo) ? (entry.logo[0]?.href ?? "") : "";
 
-    // Sort by position (rank) ascending
-    table.sort((a, b) => a.position - b.position);
-    return { competition: leagueName, table };
+        return {
+          position: rank,
+          name: entry.team ?? "",
+          logo,
+          played,
+          won,
+          drawn,
+          lost,
+          points,
+          goalsFor: 0,
+          goalsAgainst: 0,
+          goalDifference: gd,
+          form: [] as ("W" | "D" | "L")[],
+        };
+      });
+
+      table.sort((a, b) => a.position - b.position);
+
+      // Derive group label: use abbreviation (e.g. "A") or name or fallback index
+      const rawLabel = group.abbreviation || group.name || "";
+      const groupName = rawLabel
+        ? rawLabel.startsWith("Group") ? rawLabel : `Group ${rawLabel}`
+        : groups.length > 1 ? `Group ${String.fromCharCode(65 + index)}` : undefined;
+
+      return { competition: leagueName, groupName, table };
+    };
+
+    return groups
+      .map((g, i) => mapGroup(g, i))
+      .filter((s): s is CompetitionStandings => s !== null);
   } catch {
-    return null;
+    return [];
   }
 }
 
 // ---------------------------------------------------------------------------
-// Fetch a single ESPN scoreboard and return raw match objects
+// Fetch a single ESPN scoreboard for a specific date (YYYYMMDD) and return raw match objects
 // ---------------------------------------------------------------------------
-async function fetchScoreboard(league: (typeof LEAGUES)[0]): Promise<RawMatch[]> {
+async function fetchScoreboardForDate(
+  league: (typeof LEAGUES)[0],
+  dateStr?: string // YYYYMMDD format; omit for today
+): Promise<RawMatch[]> {
   try {
-    const res = await fetch(`${ESPN_BASE}/${league.slug}/scoreboard`, {
+    const url = dateStr
+      ? `${ESPN_BASE}/${league.slug}/scoreboard?dates=${dateStr}`
+      : `${ESPN_BASE}/${league.slug}/scoreboard`;
+    const res = await fetch(url, {
       headers: ESPN_HEADERS,
-      // Next.js revalidation: refresh every 30s on the CDN layer too
       next: { revalidate: 30 },
     });
     if (!res.ok) return [];
@@ -382,18 +406,15 @@ async function fetchScoreboard(league: (typeof LEAGUES)[0]): Promise<RawMatch[]>
         event.status as { clock?: number; displayClock?: string; type: { state: string; detail: string } }
       );
 
-      // score field is a STRING on ESPN competitors — CONFIRMED
       const homeScore = parseInt(String(homeComp.score ?? "0"), 10);
       const awayScore = parseInt(String(awayComp.score ?? "0"), 10);
 
-      // Broadcaster info (optional — not always present)
       const broadcasts = (competition.broadcasts as Array<Record<string, unknown>>) ?? [];
       const broadcaster =
         broadcasts.length > 0
           ? String((broadcasts[0].names as string[])?.[0] ?? "")
           : undefined;
 
-      // Venue info (optional)
       const venueObj = competition.venue as Record<string, unknown> | undefined;
       const venue = venueObj?.fullName ? String(venueObj.fullName) : undefined;
 
@@ -402,7 +423,6 @@ async function fetchScoreboard(league: (typeof LEAGUES)[0]): Promise<RawMatch[]>
         competition: league.name,
         competitionLogo: league.logo,
         homeTeam: String(homeTeamObj?.name ?? homeTeamObj?.displayName ?? ""),
-        // team.logo is a direct URL on the scoreboard competitor (confirmed)
         homeLogo: String(homeTeamObj?.logo ?? (homeTeamObj?.logos as Array<{ href: string }>)?.[0]?.href ?? ""),
         awayTeam: String(awayTeamObj?.name ?? awayTeamObj?.displayName ?? ""),
         awayLogo: String(awayTeamObj?.logo ?? (awayTeamObj?.logos as Array<{ href: string }>)?.[0]?.href ?? ""),
@@ -416,7 +436,6 @@ async function fetchScoreboard(league: (typeof LEAGUES)[0]): Promise<RawMatch[]>
         stats: { possession: 50, shotsOnTarget: 0, corners: 0, fouls: 0 },
         broadcasterRecommendation: broadcaster || undefined,
         venue,
-        // Internal fields for enrichment
         leagueSlug: league.slug,
         homeTeamId: String(homeComp.id ?? ""),
         awayTeamId: String(awayComp.id ?? ""),
@@ -425,9 +444,21 @@ async function fetchScoreboard(league: (typeof LEAGUES)[0]): Promise<RawMatch[]>
 
     return matches;
   } catch (err) {
-    console.error(`[football/route] fetchScoreboard failed for ${league.slug}:`, err);
+    console.error(`[football/route] fetchScoreboardForDate failed for ${league.slug} date=${dateStr ?? "today"}:`, err);
     return [];
   }
+}
+
+// Convenience wrapper: today (no date param)
+async function fetchScoreboard(league: (typeof LEAGUES)[0]): Promise<RawMatch[]> {
+  return fetchScoreboardForDate(league);
+}
+
+// Helper: get date string in YYYYMMDD format offset by N days from now
+function getDateOffset(offsetDays: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().slice(0, 10).replace(/-/g, "");
 }
 
 // ---------------------------------------------------------------------------
@@ -623,10 +654,26 @@ export async function GET(request: Request) {
 
   try {
     // -----------------------------------------------------------------------
-    // Step 1 — Fetch all 7 league scoreboards concurrently
+    // Step 1 — Fetch scoreboards: today + tomorrow + day-after for upcoming matches
     // -----------------------------------------------------------------------
-    const scoreboardResults = await Promise.all(LEAGUES.map(fetchScoreboard));
-    const allMatches: RawMatch[] = scoreboardResults.flat();
+    const tomorrow = getDateOffset(1);
+    const dayAfter = getDateOffset(2);
+
+    const [todayResults, tomorrowResults, dayAfterResults] = await Promise.all([
+      Promise.all(LEAGUES.map(fetchScoreboard)),
+      Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, tomorrow))),
+      Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, dayAfter))),
+    ]);
+
+    // Merge and deduplicate by match ID (today takes priority)
+    const seenMatchIds = new Set<string>();
+    const allMatches: RawMatch[] = [];
+    for (const m of [...todayResults.flat(), ...tomorrowResults.flat(), ...dayAfterResults.flat()]) {
+      if (!seenMatchIds.has(m.id)) {
+        seenMatchIds.add(m.id);
+        allMatches.push(m);
+      }
+    }
 
     // -----------------------------------------------------------------------
     // Step 2 — Determine which matches need summaries
@@ -713,7 +760,7 @@ export async function GET(request: Request) {
     });
 
     // -----------------------------------------------------------------------
-    // Step 5 — Build standings from summary data
+    // Step 5 — Build standings from summary data (supports multi-group tournaments)
     // -----------------------------------------------------------------------
     const standings: CompetitionStandings[] = [];
     const seenStandingsLeagues = new Set<string>();
@@ -724,13 +771,13 @@ export async function GET(request: Request) {
       const summary = summaryMap.get(repMatch.id);
       if (!summary?.standings) continue;
 
-      const s = mapStandings(
+      const groups = mapStandings(
         summary.standings as Parameters<typeof mapStandings>[0],
         repMatch.competition
       );
 
-      if (s && s.table.length > 0) {
-        standings.push(s);
+      if (groups.length > 0) {
+        standings.push(...groups);
         seenStandingsLeagues.add(slug);
       }
     }

@@ -80,6 +80,7 @@ export interface StandingTeam {
 
 export interface CompetitionStandings {
   competition: string;
+  groupName?: string;
   table: StandingTeam[];
 }
 
@@ -346,11 +347,12 @@ export default function SportsHub({
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [leagueFilter, setLeagueFilter] = useState("All");
   const [standingsLeague, setStandingsLeague] = useState("");
+  const standingsKey = (s: CompetitionStandings) => `${s.competition}${s.groupName ?? ""}`;
 
   // Set default standings league when data arrives
   useEffect(() => {
     if (standings.length > 0 && !standingsLeague) {
-      setStandingsLeague(standings[0].competition);
+      setStandingsLeague(standingsKey(standings[0]));
     }
   }, [standings, standingsLeague]);
 
@@ -404,7 +406,7 @@ export default function SportsHub({
   );
 
   const selectedStandings = useMemo(
-    () => standings.find((s) => s.competition === standingsLeague),
+    () => standings.find((s) => standingsKey(s) === standingsLeague),
     [standings, standingsLeague]
   );
 
@@ -575,19 +577,25 @@ export default function SportsHub({
           >
             {/* League Selector */}
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              {standings.map((s) => (
-                <button
-                  key={s.competition}
-                  onClick={() => setStandingsLeague(s.competition)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all duration-200 shrink-0 ${
-                    standingsLeague === s.competition
-                      ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary"
-                      : "bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10"
-                  }`}
-                >
-                  {s.competition}
-                </button>
-              ))}
+              {standings.map((s) => {
+                const label = s.groupName
+                  ? `${s.competition.split(" ")[0]} ${s.groupName}`
+                  : s.competition;
+                const key = `${s.competition}${s.groupName ?? ""}`;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setStandingsLeague(key)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all duration-200 shrink-0 ${
+                      standingsLeague === key
+                        ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary"
+                        : "bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Standings Table */}
@@ -1418,6 +1426,15 @@ function StandingsTable({
 }) {
   return (
     <div className="glass-card overflow-hidden">
+      {standings.groupName && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/20">
+          <Trophy className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span className="text-[11px] font-black text-primary uppercase tracking-widest">
+            {standings.groupName}
+          </span>
+          <span className="text-[10px] text-gray-500 font-medium">· {standings.competition}</span>
+        </div>
+      )}
       <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full text-xs">
           <thead>
