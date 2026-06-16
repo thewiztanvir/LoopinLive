@@ -15,6 +15,7 @@ import {
   BarChart3,
   MapPin,
   Activity,
+  ArrowLeftRight,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -123,16 +124,30 @@ function formatMatchDate(iso: string): string {
   return `${dayName} ${day} ${month} · ${time}`;
 }
 
-function eventIcon(type: MatchEvent["type"]): string {
-  switch (type) {
-    case "goal":
-      return "⚽";
-    case "card":
-      return "🟨";
-    case "sub":
-      return "🔄";
-  }
-}
+const SoccerBallIcon = ({ className = "w-3.5 h-3.5" }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="m12 2-2 3.5 2 2.5 4-1.5z" />
+    <path d="M12 22v-4l-3-2.5-3.5 1" />
+    <path d="M2.5 10.5 6 12l1 4" />
+    <path d="M21.5 10.5 18 12l-1 4" />
+    <path d="m16.5 5.5-3.5 1v3.5l3 2" />
+    <path d="m7.5 5.5 3.5 1v3.5l-3 2" />
+  </svg>
+);
+
+const RefCard = ({ color }: { color: "yellow" | "red" }) => (
+  <div className={`w-2.5 h-3.5 rounded-[2px] shadow-sm shrink-0 ${color === "yellow" ? "bg-amber-400" : "bg-rose-500"}`} />
+);
 
 // ─── Sub-Components ──────────────────────────────────────────────────────────
 
@@ -400,9 +415,7 @@ export default function SportsHub({
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2.5">
-          <span className="text-2xl" role="img" aria-label="football">
-            ⚽
-          </span>
+          <Trophy className="w-5 h-5 text-primary shrink-0" />
           <h2 className="text-xl font-bold text-white tracking-tight">
             Sports Hub
           </h2>
@@ -486,8 +499,8 @@ export default function SportsHub({
 
             {/* Empty State */}
             {!loading && matches.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 text-gray-500">
-                <span className="text-4xl mb-3">⚽</span>
+              <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
+                <SoccerBallIcon className="w-10 h-10 text-gray-600 shrink-0" />
                 <p className="text-sm font-medium">No matches available</p>
               </div>
             )}
@@ -677,9 +690,9 @@ function MatchCard({
         {Object.entries(grouped).map(([scorer, mins]) => (
           <span
             key={scorer}
-            className="text-[10px] text-gray-400 select-none flex items-center gap-1 max-w-full truncate"
+            className="text-[10px] text-gray-400 select-none flex items-center gap-1.5 max-w-full truncate"
           >
-            <span>⚽</span>
+            <SoccerBallIcon className="w-2.5 h-2.5 text-gray-500 shrink-0" />
             <span className="truncate">{scorer} {mins.map((m) => `${m}'`).join(", ")}</span>
           </span>
         ))}
@@ -795,8 +808,9 @@ function MatchCard({
             {formatMatchDate(match.startTime)}
           </span>
           {match.venue && (
-            <span className="text-[10px] text-gray-500 truncate max-w-[140px] md:max-w-[180px]">
-              📍 {match.venue}
+            <span className="text-[10px] text-gray-500 flex items-center gap-1 truncate max-w-[140px] md:max-w-[180px]">
+              <MapPin className="w-3 h-3 text-gray-500 shrink-0" />
+              {match.venue}
             </span>
           )}
         </div>
@@ -913,7 +927,7 @@ function MatchDetailPanel({
             key={scorer}
             className="text-[11px] text-gray-400 select-none flex items-center gap-1.5"
           >
-            <span>⚽</span>
+            <SoccerBallIcon className="w-3 h-3 text-gray-500 shrink-0" />
             <span>{scorer} {mins.map((m) => `${m}'`).join(", ")}</span>
           </span>
         ))}
@@ -965,17 +979,17 @@ function MatchDetailPanel({
   const eventIcon = (type: string, detail: string) => {
     switch (type) {
       case "goal":
-        return "⚽";
+        return <SoccerBallIcon className="w-3.5 h-3.5 text-white shrink-0" />;
       case "yellow-card":
-        return "🟨";
+        return <RefCard color="yellow" />;
       case "red-card":
-        return "🟥";
+        return <RefCard color="red" />;
       case "card":
-        return detail.toLowerCase().includes("red") ? "🟥" : "🟨";
+        return detail.toLowerCase().includes("red") ? <RefCard color="red" /> : <RefCard color="yellow" />;
       case "sub":
-        return "🔄";
+        return <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-400 shrink-0" />;
       default:
-        return "⏱️";
+        return <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />;
     }
   };
 
