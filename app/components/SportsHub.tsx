@@ -94,55 +94,61 @@ interface SportsHubProps {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+function getDhakaDateString(date: Date): string {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Dhaka",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = formatter.formatToParts(date);
+  const year = parts.find(p => p.type === "year")?.value;
+  const month = parts.find(p => p.type === "month")?.value;
+  const day = parts.find(p => p.type === "day")?.value;
+  return `${year}-${month}-${day}`;
+}
+
 function formatTime(date: Date): string {
-  return date.toLocaleTimeString([], {
+  return date.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
+    timeZone: "Asia/Dhaka",
+    hour12: true,
   });
 }
 
 function formatStartTime(iso: string): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleTimeString([], {
+  return new Date(iso).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
     timeZone: "Asia/Dhaka",
     hour12: true,
-    hour: "numeric",
-    minute: "2-digit",
   });
 }
 
 function formatMatchDate(iso: string): string {
   if (!iso) return "";
-  const match = new Date(iso);
+  const matchDate = new Date(iso);
   const now = new Date();
   
-  const toDhakaLocalDateStr = (d: Date) => {
-    return d.toLocaleDateString("en-US", { timeZone: "Asia/Dhaka" });
-  };
+  const matchDhakaStr = getDhakaDateString(matchDate);
+  const todayDhakaStr = getDhakaDateString(now);
+  const tomorrowDhakaStr = getDhakaDateString(new Date(now.getTime() + 86_400_000));
   
-  const matchDhakaDateStr = toDhakaLocalDateStr(match);
-  const todayDhakaDateStr = toDhakaLocalDateStr(now);
-  const tomorrowDhakaDateStr = toDhakaLocalDateStr(new Date(now.getTime() + 86_400_000));
-  
-  const time = match.toLocaleTimeString([], {
+  const time = matchDate.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
     timeZone: "Asia/Dhaka",
     hour12: true,
-    hour: "numeric",
-    minute: "2-digit"
   });
-  
-  if (matchDhakaDateStr === todayDhakaDateStr) {
-    return `Today · ${time}`;
-  }
-  if (matchDhakaDateStr === tomorrowDhakaDateStr) {
-    return `Tomorrow · ${time}`;
-  }
-  
-  const dayName = match.toLocaleDateString("en-US", { weekday: "short", timeZone: "Asia/Dhaka" });
-  const day = match.toLocaleDateString("en-US", { day: "numeric", timeZone: "Asia/Dhaka" });
-  const month = match.toLocaleDateString("en-US", { month: "short", timeZone: "Asia/Dhaka" });
-  
+
+  if (matchDhakaStr === todayDhakaStr) return `Today · ${time}`;
+  if (matchDhakaStr === tomorrowDhakaStr) return `Tomorrow · ${time}`;
+
+  const dayName = matchDate.toLocaleDateString("en-US", { weekday: "short", timeZone: "Asia/Dhaka" });
+  const day = matchDate.toLocaleDateString("en-US", { day: "numeric", timeZone: "Asia/Dhaka" });
+  const month = matchDate.toLocaleDateString("en-US", { month: "short", timeZone: "Asia/Dhaka" });
   return `${dayName} ${day} ${month} · ${time}`;
 }
 
@@ -904,7 +910,7 @@ function MatchCard({
             <div className="flex flex-col items-center justify-center bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl">
               <Clock className="w-4 h-4 text-blue-400 mb-1" />
               <span className="text-sm font-black text-blue-300 tabular-nums">
-                {formatStartTime(match.startTime)}
+                {new Date(match.startTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Dhaka", hour12: true })}
               </span>
             </div>
           ) : (
@@ -1435,7 +1441,7 @@ function MatchDetailPanel({
                 <div className="flex flex-col items-center">
                   <Clock className="w-4 h-4 text-blue-400 mb-0.5" />
                   <span className="text-sm font-black text-blue-300 tabular-nums">
-                    {formatStartTime(match.startTime)}
+                    {new Date(match.startTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Dhaka", hour12: true })}
                   </span>
                 </div>
               ) : (
