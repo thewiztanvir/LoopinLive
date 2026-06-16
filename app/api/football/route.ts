@@ -490,7 +490,7 @@ async function fetchSummary(leagueSlug: string, matchId: string): Promise<Record
 async function fetchStandings(leagueSlug: string): Promise<Record<string, unknown> | null> {
   try {
     const res = await fetch(
-      `${ESPN_BASE}/${leagueSlug}/standings`,
+      `https://site.api.espn.com/apis/v2/sports/soccer/${leagueSlug}/standings`,
       { headers: ESPN_HEADERS }
     );
     if (!res.ok) return null;
