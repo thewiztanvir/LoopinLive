@@ -357,15 +357,28 @@ export default function SportsHub({
     "overview" | "live" | "upcoming" | "results" | "standings"
   >("overview");
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  const [standingsLeague, setStandingsLeague] = useState("");
-  const standingsKey = (s: CompetitionStandings) => `${s.competition}${s.groupName ?? ""}`;
+  const [selectedCompetition, setSelectedCompetition] = useState("");
 
-  // Set default standings league when data arrives
+  // Group standings by competition name
+  const standingsByCompetition = useMemo(() => {
+    const grouped: Record<string, CompetitionStandings[]> = {};
+    standings.forEach((s) => {
+      if (!grouped[s.competition]) {
+        grouped[s.competition] = [];
+      }
+      grouped[s.competition].push(s);
+    });
+    return grouped;
+  }, [standings]);
+
+  // Set default standings competition when data arrives
   useEffect(() => {
-    if (standings.length > 0 && !standingsLeague) {
-      setStandingsLeague(standingsKey(standings[0]));
+    const competitionsList = Object.keys(standingsByCompetition);
+    if (competitionsList.length > 0 && !selectedCompetition) {
+      const defaultComp = competitionsList.find(c => c.toLowerCase().includes("fifa")) || competitionsList[0];
+      setSelectedCompetition(defaultComp);
     }
-  }, [standings, standingsLeague]);
+  }, [standingsByCompetition, selectedCompetition]);
 
   // Keep selected match details synced with parent polling updates
   useEffect(() => {
@@ -423,10 +436,7 @@ export default function SportsHub({
   const overviewUpcoming = useMemo(() => onePerCompetition(upcomingMatches), [upcomingMatches]);
   const overviewResults = useMemo(() => onePerCompetition(completedMatches), [completedMatches]);
 
-  const selectedStandings = useMemo(
-    () => standings.find((s) => standingsKey(s) === standingsLeague),
-    [standings, standingsLeague]
-  );
+  // Selected standings list is computed dynamically in render block
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -647,32 +657,48 @@ export default function SportsHub({
               </div>
             ) : (
               <>
-                {/* Group / league selector */}
+                {/* Competition selector */}
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                  {standings.map((s) => {
-                    const label = s.groupName
-                      ? `${s.competition.split(" ")[0]} ${s.groupName}`
-                      : s.competition;
-                    const key = standingsKey(s);
+                  {Object.keys(standingsByCompetition).map((compName) => {
                     return (
                       <button
-                        key={key}
-                        onClick={() => setStandingsLeague(key)}
+                        key={compName}
+                        onClick={() => setSelectedCompetition(compName)}
                         className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all duration-200 shrink-0 ${
-                          standingsLeague === key
+                          selectedCompetition === compName
                             ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary"
                             : "bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10"
                         }`}
                       >
-                        {label}
+                        {compName}
                       </button>
                     );
                   })}
                 </div>
 
-                {selectedStandings && (
-                  <StandingsTable standings={selectedStandings} />
-                )}
+                {/* Standings Grid/Table */}
+                {selectedCompetition && (() => {
+                  const compStandings = standingsByCompetition[selectedCompetition] ?? [];
+                  if (compStandings.length === 0) return null;
+                  
+                  // If there is only one group (like standard domestic leagues)
+                  if (compStandings.length === 1) {
+                    return <StandingsTable standings={compStandings[0]} compact={false} />;
+                  }
+
+                  // If there are multiple groups (like FIFA World Cup or Champions League)
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-fadeIn">
+                      {compStandings.map((s, idx) => (
+                        <StandingsTable
+                          key={`${s.competition}-${s.groupName || idx}`}
+                          standings={s}
+                          compact={true}
+                        />
+                      ))}
+                    </div>
+                  );
+                })()}
               </>
             )
           )}
@@ -1505,33 +1531,37 @@ function MatchDetailPanel({
 
 function StandingsTable({
   standings,
+  compact = false,
 }: {
   standings: CompetitionStandings;
+  compact?: boolean;
 }) {
   return (
     <div className="glass-card overflow-hidden">
       {standings.groupName && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/20">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border-b border-primary/20">
           <Trophy className="w-3.5 h-3.5 text-primary shrink-0" />
           <span className="text-[11px] font-black text-primary uppercase tracking-widest">
             {standings.groupName}
           </span>
-          <span className="text-[10px] text-gray-500 font-medium">· {standings.competition}</span>
+          {!compact && (
+            <span className="text-[10px] text-gray-500 font-medium">· {standings.competition}</span>
+          )}
         </div>
       )}
       <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-white/5 text-gray-400 text-[10px] uppercase tracking-wider font-bold">
-              <th className="py-2.5 px-3 text-left w-8">#</th>
-              <th className="py-2.5 px-3 text-left">Team</th>
-              <th className="py-2.5 px-2 text-center w-8">P</th>
-              <th className="py-2.5 px-2 text-center w-8">W</th>
-              <th className="py-2.5 px-2 text-center w-8">D</th>
-              <th className="py-2.5 px-2 text-center w-8">L</th>
-              <th className="py-2.5 px-2 text-center w-10">GD</th>
-              <th className="py-2.5 px-2 text-center w-10">Pts</th>
-              <th className="py-2.5 px-3 text-center">Form</th>
+              <th className="py-2 px-2.5 text-left w-8">#</th>
+              <th className="py-2 px-2.5 text-left">Team</th>
+              <th className="py-2 px-1 text-center w-7">P</th>
+              <th className="py-2 px-1 text-center w-7">W</th>
+              <th className="py-2 px-1 text-center w-7">D</th>
+              <th className="py-2 px-1 text-center w-7">L</th>
+              <th className="py-2 px-1 text-center w-8">GD</th>
+              <th className="py-2 px-1 text-center w-8">Pts</th>
+              {!compact && <th className="py-2 px-3 text-center">Form</th>}
             </tr>
           </thead>
           <tbody>
@@ -1553,55 +1583,57 @@ function StandingsTable({
                     i % 2 === 0 ? "bg-white/[0.01]" : ""
                   }`}
                 >
-                  <td className="py-2.5 px-3 text-gray-500 font-bold">
+                  <td className="py-2 px-2.5 text-gray-500 font-bold">
                     {team.position}
                   </td>
-                  <td className="py-2.5 px-3">
+                  <td className="py-2 px-2.5">
                     <div className="flex items-center gap-2">
-                      <TeamLogo src={team.logo} name={team.name} size={20} />
-                      <span className="font-semibold text-white/90 truncate max-w-[140px]">
+                      <TeamLogo src={team.logo} name={team.name} size={18} />
+                      <span className="font-semibold text-white/90 truncate max-w-[90px] sm:max-w-[120px]">
                         {team.name}
                       </span>
                     </div>
                   </td>
-                  <td className="py-2.5 px-2 text-center text-gray-400">
+                  <td className="py-2 px-1 text-center text-gray-400">
                     {team.played}
                   </td>
-                  <td className="py-2.5 px-2 text-center text-gray-400">
+                  <td className="py-2 px-1 text-center text-gray-400">
                     {team.won}
                   </td>
-                  <td className="py-2.5 px-2 text-center text-gray-400">
+                  <td className="py-2 px-1 text-center text-gray-400">
                     {team.drawn}
                   </td>
-                  <td className="py-2.5 px-2 text-center text-gray-400">
+                  <td className="py-2 px-1 text-center text-gray-400">
                     {team.lost}
                   </td>
-                  <td className="py-2.5 px-2 text-center text-gray-400 font-medium">
+                  <td className="py-2 px-1 text-center text-gray-400 font-medium">
                     {team.goalDifference > 0
                       ? `+${team.goalDifference}`
                       : team.goalDifference}
                   </td>
-                  <td className="py-2.5 px-2 text-center font-bold text-primary">
+                  <td className="py-2 px-1 text-center font-bold text-primary">
                     {team.points}
                   </td>
-                  <td className="py-2.5 px-3">
-                    <div className="flex items-center justify-center gap-1">
-                      {team.form.slice(-5).map((result, fi) => (
-                        <span
-                          key={fi}
-                          className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white ${
-                            result === "W"
-                              ? "bg-green-500"
-                              : result === "D"
-                              ? "bg-yellow-500"
-                              : "bg-rose-500"
-                          }`}
-                        >
-                          {result}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
+                  {!compact && (
+                    <td className="py-2 px-3">
+                      <div className="flex items-center justify-center gap-1">
+                        {team.form.slice(-5).map((result, fi) => (
+                          <span
+                            key={fi}
+                            className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white ${
+                              result === "W"
+                                ? "bg-green-500"
+                                : result === "D"
+                                ? "bg-yellow-500"
+                                : "bg-rose-500"
+                            }`}
+                          >
+                            {result}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                  )}
                 </motion.tr>
               );
             })}
