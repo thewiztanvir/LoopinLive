@@ -371,6 +371,54 @@ function onePerCompetition(list: Match[]): Match[] {
   });
 }
 
+// ─── Helper — groups matches by competition and sorts by priority ─────────────────
+function groupMatchesByCompetition(matchList: Match[]): { competition: string; matches: Match[] }[] {
+  const groupedMap: Record<string, Match[]> = {};
+  matchList.forEach((m) => {
+    const comp = m.competition;
+    if (!groupedMap[comp]) {
+      groupedMap[comp] = [];
+    }
+    groupedMap[comp].push(m);
+  });
+
+  const priorityOrder = [
+    "FIFA World Cup",
+    "Champions League",
+    "Premier League",
+    "La Liga",
+    "Bundesliga",
+    "Serie A",
+    "Ligue 1",
+  ];
+
+  const getPriorityScore = (name: string): number => {
+    const lowerName = name.toLowerCase();
+    for (let i = 0; i < priorityOrder.length; i++) {
+      if (lowerName.includes(priorityOrder[i].toLowerCase())) {
+        return i;
+      }
+    }
+    return 999;
+  };
+
+  const groupedList = Object.entries(groupedMap).map(([competition, matches]) => ({
+    competition,
+    matches,
+  }));
+
+  groupedList.sort((a, b) => {
+    const scoreA = getPriorityScore(a.competition);
+    const scoreB = getPriorityScore(b.competition);
+    if (scoreA !== scoreB) {
+      return scoreA - scoreB;
+    }
+    return a.competition.localeCompare(b.competition);
+  });
+
+  return groupedList;
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function SportsHub({
@@ -454,9 +502,34 @@ export default function SportsHub({
     [matches]
   );
 
-  // Dedicated tab previews (capped at 4)
-  const upcomingPreview = useMemo(() => upcomingMatches.slice(0, 4), [upcomingMatches]);
-  const resultsPreview = useMemo(() => completedMatches.slice(0, 4), [completedMatches]);
+  // Grouped Live Matches: max 4 per competition
+  const groupedLiveMatches = useMemo(() => {
+    const groups = groupMatchesByCompetition(liveMatches);
+    groups.forEach((g) => {
+      g.matches = g.matches.slice(0, 4);
+    });
+    return groups;
+  }, [liveMatches]);
+
+  // Grouped Upcoming Matches: sorted ascending by kickoff time, max 4 per competition
+  const groupedUpcomingMatches = useMemo(() => {
+    const groups = groupMatchesByCompetition(upcomingMatches);
+    groups.forEach((g) => {
+      g.matches.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+      g.matches = g.matches.slice(0, 4);
+    });
+    return groups;
+  }, [upcomingMatches]);
+
+  // Grouped Completed Matches: sorted descending by kickoff time, max 4 per competition
+  const groupedCompletedMatches = useMemo(() => {
+    const groups = groupMatchesByCompetition(completedMatches);
+    groups.forEach((g) => {
+      g.matches.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+      g.matches = g.matches.slice(0, 4);
+    });
+    return groups;
+  }, [completedMatches]);
 
   // Overview: 1 per competition, already priority-ordered by the list they come from
   const overviewLive = useMemo(() => onePerCompetition(liveMatches), [liveMatches]);
@@ -611,67 +684,82 @@ export default function SportsHub({
 
           {/* ── LIVE ────────────────────────────────────────────────────────── */}
           {activeTab === "live" && (
-            liveMatches.length === 0 ? (
+            groupedLiveMatches.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
                 <SoccerBallIcon className="w-10 h-10 text-gray-600 shrink-0" />
                 <p className="text-sm font-medium">No live matches right now</p>
                 <p className="text-xs text-gray-600">Check Upcoming for what&apos;s on next</p>
               </div>
             ) : (
-              <MatchSection
-                title="LIVE NOW"
-                icon={
-                  <span className="relative flex h-2.5 w-2.5 mr-1">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
-                  </span>
-                }
-                titleClass="text-rose-400"
-                matches={liveMatches}
-                selectedMatch={selectedMatch}
-                onSelect={setSelectedMatch}
-                onTuneToChannel={onTuneToChannel}
-              />
+              <div className="flex flex-col gap-6">
+                {groupedLiveMatches.map((group) => (
+                  <MatchSection
+                    key={group.competition}
+                    title={group.competition}
+                    icon={
+                      <span className="relative flex h-2.5 w-2.5 mr-1">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+                      </span>
+                    }
+                    titleClass="text-rose-400"
+                    matches={group.matches}
+                    selectedMatch={selectedMatch}
+                    onSelect={setSelectedMatch}
+                    onTuneToChannel={onTuneToChannel}
+                  />
+                ))}
+              </div>
             )
           )}
 
           {/* ── UPCOMING ─────────────────────────────────────────────────────── */}
           {activeTab === "upcoming" && (
-            upcomingMatches.length === 0 ? (
+            groupedUpcomingMatches.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
                 <Clock className="w-10 h-10 text-gray-600 shrink-0" />
                 <p className="text-sm font-medium">No upcoming matches scheduled</p>
               </div>
             ) : (
-              <MatchSection
-                title="NEXT UP"
-                icon={<Clock className="w-3.5 h-3.5 text-blue-400" />}
-                titleClass="text-blue-400"
-                matches={upcomingMatches}
-                selectedMatch={selectedMatch}
-                onSelect={setSelectedMatch}
-                onTuneToChannel={onTuneToChannel}
-              />
+              <div className="flex flex-col gap-6">
+                {groupedUpcomingMatches.map((group) => (
+                  <MatchSection
+                    key={group.competition}
+                    title={group.competition}
+                    icon={<Clock className="w-3.5 h-3.5 text-blue-400" />}
+                    titleClass="text-blue-400"
+                    matches={group.matches}
+                    selectedMatch={selectedMatch}
+                    onSelect={setSelectedMatch}
+                    onTuneToChannel={onTuneToChannel}
+                  />
+                ))}
+              </div>
             )
           )}
 
           {/* ── RESULTS ──────────────────────────────────────────────────────── */}
           {activeTab === "results" && (
-            completedMatches.length === 0 ? (
+            groupedCompletedMatches.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
                 <CheckCircle className="w-10 h-10 text-gray-600 shrink-0" />
                 <p className="text-sm font-medium">No results yet</p>
               </div>
             ) : (
-              <MatchSection
-                title="LATEST RESULTS"
-                icon={<CheckCircle className="w-3.5 h-3.5 text-gray-500" />}
-                titleClass="text-gray-500"
-                matches={completedMatches}
-                selectedMatch={selectedMatch}
-                onSelect={setSelectedMatch}
-                onTuneToChannel={onTuneToChannel}
-              />
+              <div className="flex flex-col gap-6">
+                {groupedCompletedMatches.map((group) => (
+                  <MatchSection
+                    key={group.competition}
+                    title={group.competition}
+                    icon={<CheckCircle className="w-3.5 h-3.5 text-gray-500" />}
+                    titleClass="text-gray-500"
+                    matches={group.matches}
+                    selectedMatch={selectedMatch}
+                    onSelect={setSelectedMatch}
+                    onTuneToChannel={onTuneToChannel}
+                  />
+                ))}
+              </div>
             )
           )}
 
