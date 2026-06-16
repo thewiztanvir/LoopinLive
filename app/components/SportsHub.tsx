@@ -334,6 +334,16 @@ function StatBar({
   );
 }
 
+// ─── Helper — picks first match per unique competition (preserves priority order) ─
+function onePerCompetition(list: Match[]): Match[] {
+  const seen = new Set<string>();
+  return list.filter((m) => {
+    if (seen.has(m.competition)) return false;
+    seen.add(m.competition);
+    return true;
+  });
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function SportsHub({
@@ -343,9 +353,10 @@ export default function SportsHub({
   lastUpdated,
   onTuneToChannel,
 }: SportsHubProps) {
-  const [activeTab, setActiveTab] = useState<"matches" | "standings">("matches");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "live" | "upcoming" | "results" | "standings"
+  >("overview");
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  const [leagueFilter, setLeagueFilter] = useState("All");
   const [standingsLeague, setStandingsLeague] = useState("");
   const standingsKey = (s: CompetitionStandings) => `${s.competition}${s.groupName ?? ""}`;
 
@@ -360,18 +371,14 @@ export default function SportsHub({
   useEffect(() => {
     if (selectedMatch) {
       const updated = matches.find((m) => m.id === selectedMatch.id);
-      if (updated) {
-        setSelectedMatch(updated);
-      }
+      if (updated) setSelectedMatch(updated);
     }
   }, [matches, selectedMatch]);
 
   // Close detail panel on Escape
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "Escape" && selectedMatch) {
-        setSelectedMatch(null);
-      }
+      if (e.key === "Escape" && selectedMatch) setSelectedMatch(null);
     },
     [selectedMatch]
   );
@@ -381,29 +388,40 @@ export default function SportsHub({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  // Derived data
-  const competitions = useMemo(() => {
-    const set = new Set(matches.map((m) => m.competition));
-    return ["All", ...Array.from(set)];
-  }, [matches]);
+  // ── Derived match lists ────────────────────────────────────────────────────
 
-  const filteredMatches = useMemo(() => {
-    if (leagueFilter === "All") return matches;
-    return matches.filter((m) => m.competition === leagueFilter);
-  }, [matches, leagueFilter]);
-
+  // All LIVE + HT — unfiltered
   const liveMatches = useMemo(
-    () => filteredMatches.filter((m) => m.status === "LIVE" || m.status === "HT"),
-    [filteredMatches]
+    () => matches.filter((m) => m.status === "LIVE" || m.status === "HT"),
+    [matches]
   );
-  const scheduledMatches = useMemo(
-    () => filteredMatches.filter((m) => m.status === "SCHEDULED"),
-    [filteredMatches]
+
+  // All SCHEDULED — sorted soonest first
+  const upcomingMatches = useMemo(
+    () =>
+      [...matches.filter((m) => m.status === "SCHEDULED")].sort(
+        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      ),
+    [matches]
   );
+
+  // All FT — sorted most recent first
   const completedMatches = useMemo(
-    () => filteredMatches.filter((m) => m.status === "FT"),
-    [filteredMatches]
+    () =>
+      [...matches.filter((m) => m.status === "FT")].sort(
+        (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+      ),
+    [matches]
   );
+
+  // Dedicated tab previews (capped at 4)
+  const upcomingPreview = useMemo(() => upcomingMatches.slice(0, 4), [upcomingMatches]);
+  const resultsPreview = useMemo(() => completedMatches.slice(0, 4), [completedMatches]);
+
+  // Overview: 1 per competition, already priority-ordered by the list they come from
+  const overviewLive = useMemo(() => onePerCompetition(liveMatches), [liveMatches]);
+  const overviewUpcoming = useMemo(() => onePerCompetition(upcomingMatches), [upcomingMatches]);
+  const overviewResults = useMemo(() => onePerCompetition(completedMatches), [completedMatches]);
 
   const selectedStandings = useMemo(
     () => standings.find((s) => standingsKey(s) === standingsLeague),
@@ -411,6 +429,14 @@ export default function SportsHub({
   );
 
   // ─── Render ────────────────────────────────────────────────────────────────
+
+  const tabs = [
+    { id: "overview" as const, label: "Overview" },
+    { id: "live" as const, label: liveMatches.length > 0 ? `Live \u00b7 ${liveMatches.length}` : "Live" },
+    { id: "upcoming" as const, label: "Upcoming" },
+    { id: "results" as const, label: "Results" },
+    { id: "standings" as const, label: "Standings" },
+  ];
 
   return (
     <div className="w-full flex flex-col gap-4">
@@ -442,167 +468,225 @@ export default function SportsHub({
         </div>
       </div>
 
-      {/* Tab Pills */}
-      <div className="flex gap-1 p-1 rounded-xl bg-white/5 w-fit">
-        {(["matches", "standings"] as const).map((tab) => (
+      {/* Tab Pills — 5 tabs */}
+      <div className="flex gap-1 p-1 rounded-xl bg-white/5 overflow-x-auto no-scrollbar">
+        {tabs.map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold capitalize transition-all duration-200 ${
-              activeTab === tab
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`relative px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
+              activeTab === tab.id
                 ? "bg-primary text-white shadow-lg shadow-primary/20"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            {tab}
+            {/* Pulsing dot on Live pill when there are live matches */}
+            {tab.id === "live" && liveMatches.length > 0 && activeTab !== "live" && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+              </span>
+            )}
+            {tab.label}
           </button>
         ))}
       </div>
 
       {/* Tab Content */}
       <AnimatePresence mode="wait">
-        {activeTab === "matches" ? (
-          <motion.div
-            key="matches"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
-            className="flex flex-col gap-4"
-          >
-            {/* League Filter Bar */}
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              {competitions.map((comp) => (
-                <button
-                  key={comp}
-                  onClick={() => {
-                    setLeagueFilter(comp);
-                    setSelectedMatch(null);
-                  }}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all duration-200 shrink-0 ${
-                    leagueFilter === comp
-                      ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary"
-                      : "bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10"
-                  }`}
-                >
-                  {comp}
-                </button>
-              ))}
-            </div>
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.2 }}
+          className="flex flex-col gap-5"
+        >
 
-            {/* Loading State */}
-            {loading && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <SkeletonCard key={i} />
-                ))}
-              </div>
-            )}
+          {/* ── OVERVIEW ─────────────────────────────────────────────────────── */}
+          {activeTab === "overview" && (
+            <>
+              {/* Skeleton on first load */}
+              {loading && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <SkeletonCard key={i} />
+                  ))}
+                </div>
+              )}
 
-            {/* Empty State */}
-            {!loading && matches.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
-                <SoccerBallIcon className="w-10 h-10 text-gray-600 shrink-0" />
-                <p className="text-sm font-medium">No matches available</p>
-              </div>
-            )}
-
-            {/* Match Sections — always visible; skeletons shown only on initial load */}
-            {matches.length > 0 && (
-              <div className="flex flex-col gap-5">
-                {/* LIVE NOW */}
-                {liveMatches.length > 0 && (
-                  <MatchSection
-                    title="LIVE NOW"
-                    icon={
-                      <span className="relative flex h-2.5 w-2.5 mr-1">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
-                      </span>
-                    }
-                    titleClass="text-rose-400"
-                    matches={liveMatches}
-                    selectedMatch={selectedMatch}
-                    onSelect={setSelectedMatch}
-                    onTuneToChannel={onTuneToChannel}
-                  />
+              {/* Empty state */}
+              {!loading &&
+                overviewLive.length === 0 &&
+                overviewUpcoming.length === 0 &&
+                overviewResults.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
+                    <SoccerBallIcon className="w-10 h-10 text-gray-600 shrink-0" />
+                    <p className="text-sm font-medium">No matches available right now</p>
+                  </div>
                 )}
 
-                {/* UPCOMING */}
-                {scheduledMatches.length > 0 && (
-                  <MatchSection
-                    title="UPCOMING"
-                    icon={<Clock className="w-3.5 h-3.5 text-blue-400" />}
-                    titleClass="text-blue-400"
-                    matches={scheduledMatches}
-                    selectedMatch={selectedMatch}
-                    onSelect={setSelectedMatch}
-                    onTuneToChannel={onTuneToChannel}
-                  />
-                )}
-
-                {/* COMPLETED */}
-                {completedMatches.length > 0 && (
-                  <MatchSection
-                    title="COMPLETED"
-                    icon={<CheckCircle className="w-3.5 h-3.5 text-gray-500" />}
-                    titleClass="text-gray-500"
-                    matches={completedMatches}
-                    selectedMatch={selectedMatch}
-                    onSelect={setSelectedMatch}
-                    onTuneToChannel={onTuneToChannel}
-                  />
-                )}
-              </div>
-            )}
-
-            {/* Match Detail Panel */}
-            <AnimatePresence>
-              {selectedMatch && (
-                <MatchDetailPanel
-                  match={selectedMatch}
-                  onClose={() => setSelectedMatch(null)}
+              {/* Live — 1 per competition */}
+              {!loading && overviewLive.length > 0 && (
+                <MatchSection
+                  title="LIVE NOW"
+                  icon={
+                    <span className="relative flex h-2.5 w-2.5 mr-1">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+                    </span>
+                  }
+                  titleClass="text-rose-400"
+                  matches={overviewLive}
+                  selectedMatch={selectedMatch}
+                  onSelect={setSelectedMatch}
+                  onTuneToChannel={onTuneToChannel}
                 />
               )}
-            </AnimatePresence>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="standings"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
-            className="flex flex-col gap-4"
-          >
-            {/* League Selector */}
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              {standings.map((s) => {
-                const label = s.groupName
-                  ? `${s.competition.split(" ")[0]} ${s.groupName}`
-                  : s.competition;
-                const key = `${s.competition}${s.groupName ?? ""}`;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setStandingsLeague(key)}
-                    className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all duration-200 shrink-0 ${
-                      standingsLeague === key
-                        ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary"
-                        : "bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
 
-            {/* Standings Table */}
-            {selectedStandings && (
-              <StandingsTable standings={selectedStandings} />
-            )}
-          </motion.div>
+              {/* Upcoming — 1 per competition */}
+              {!loading && overviewUpcoming.length > 0 && (
+                <MatchSection
+                  title="UPCOMING"
+                  icon={<Clock className="w-3.5 h-3.5 text-blue-400" />}
+                  titleClass="text-blue-400"
+                  matches={overviewUpcoming}
+                  selectedMatch={selectedMatch}
+                  onSelect={setSelectedMatch}
+                  onTuneToChannel={onTuneToChannel}
+                />
+              )}
+
+              {/* Recent Results — 1 per competition */}
+              {!loading && overviewResults.length > 0 && (
+                <MatchSection
+                  title="RECENT RESULTS"
+                  icon={<CheckCircle className="w-3.5 h-3.5 text-gray-500" />}
+                  titleClass="text-gray-500"
+                  matches={overviewResults}
+                  selectedMatch={selectedMatch}
+                  onSelect={setSelectedMatch}
+                  onTuneToChannel={onTuneToChannel}
+                />
+              )}
+            </>
+          )}
+
+          {/* ── LIVE ────────────────────────────────────────────────────────── */}
+          {activeTab === "live" && (
+            liveMatches.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
+                <SoccerBallIcon className="w-10 h-10 text-gray-600 shrink-0" />
+                <p className="text-sm font-medium">No live matches right now</p>
+                <p className="text-xs text-gray-600">Check Upcoming for what&apos;s on next</p>
+              </div>
+            ) : (
+              <MatchSection
+                title="LIVE NOW"
+                icon={
+                  <span className="relative flex h-2.5 w-2.5 mr-1">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+                  </span>
+                }
+                titleClass="text-rose-400"
+                matches={liveMatches}
+                selectedMatch={selectedMatch}
+                onSelect={setSelectedMatch}
+                onTuneToChannel={onTuneToChannel}
+              />
+            )
+          )}
+
+          {/* ── UPCOMING ─────────────────────────────────────────────────────── */}
+          {activeTab === "upcoming" && (
+            upcomingPreview.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
+                <Clock className="w-10 h-10 text-gray-600 shrink-0" />
+                <p className="text-sm font-medium">No upcoming matches scheduled</p>
+              </div>
+            ) : (
+              <MatchSection
+                title="NEXT UP"
+                icon={<Clock className="w-3.5 h-3.5 text-blue-400" />}
+                titleClass="text-blue-400"
+                matches={upcomingPreview}
+                selectedMatch={selectedMatch}
+                onSelect={setSelectedMatch}
+                onTuneToChannel={onTuneToChannel}
+              />
+            )
+          )}
+
+          {/* ── RESULTS ──────────────────────────────────────────────────────── */}
+          {activeTab === "results" && (
+            resultsPreview.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
+                <CheckCircle className="w-10 h-10 text-gray-600 shrink-0" />
+                <p className="text-sm font-medium">No results yet</p>
+              </div>
+            ) : (
+              <MatchSection
+                title="LATEST RESULTS"
+                icon={<CheckCircle className="w-3.5 h-3.5 text-gray-500" />}
+                titleClass="text-gray-500"
+                matches={resultsPreview}
+                selectedMatch={selectedMatch}
+                onSelect={setSelectedMatch}
+                onTuneToChannel={onTuneToChannel}
+              />
+            )
+          )}
+
+          {/* ── STANDINGS ────────────────────────────────────────────────────── */}
+          {activeTab === "standings" && (
+            standings.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
+                <Trophy className="w-10 h-10 text-gray-600 shrink-0" />
+                <p className="text-sm font-medium">No standings available</p>
+              </div>
+            ) : (
+              <>
+                {/* Group / league selector */}
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                  {standings.map((s) => {
+                    const label = s.groupName
+                      ? `${s.competition.split(" ")[0]} ${s.groupName}`
+                      : s.competition;
+                    const key = standingsKey(s);
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setStandingsLeague(key)}
+                        className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all duration-200 shrink-0 ${
+                          standingsLeague === key
+                            ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary"
+                            : "bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {selectedStandings && (
+                  <StandingsTable standings={selectedStandings} />
+                )}
+              </>
+            )
+          )}
+
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Match Detail Modal — hoisted to root level so it opens from any tab */}
+      <AnimatePresence>
+        {selectedMatch && (
+          <MatchDetailPanel
+            match={selectedMatch}
+            onClose={() => setSelectedMatch(null)}
+          />
         )}
       </AnimatePresence>
     </div>
