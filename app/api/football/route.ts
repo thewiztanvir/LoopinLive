@@ -90,6 +90,7 @@ export interface Match {
   events: MatchEvent[];
   stats: MatchStats;
   broadcasterRecommendation?: string;
+  venue?: string;
 }
 
 export interface StandingTeam {
@@ -376,6 +377,10 @@ async function fetchScoreboard(league: (typeof LEAGUES)[0]): Promise<RawMatch[]>
           ? String((broadcasts[0].names as string[])?.[0] ?? "")
           : undefined;
 
+      // Venue info (optional)
+      const venueObj = competition.venue as Record<string, unknown> | undefined;
+      const venue = venueObj?.fullName ? String(venueObj.fullName) : undefined;
+
       matches.push({
         id: String(event.id),
         competition: league.name,
@@ -394,6 +399,7 @@ async function fetchScoreboard(league: (typeof LEAGUES)[0]): Promise<RawMatch[]>
         events: [],
         stats: { possession: 50, shotsOnTarget: 0, corners: 0, fouls: 0 },
         broadcasterRecommendation: broadcaster || undefined,
+        venue,
         // Internal fields for enrichment
         leagueSlug: league.slug,
         homeTeamId: String(homeComp.id ?? ""),
