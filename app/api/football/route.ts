@@ -91,6 +91,7 @@ export interface Match {
   stats: MatchStats;
   broadcasterRecommendation?: string;
   venue?: string;
+  leagueSlug: string;
 }
 
 export interface StandingTeam {
@@ -434,7 +435,151 @@ async function fetchSummary(leagueSlug: string, matchId: string): Promise<Record
 // ---------------------------------------------------------------------------
 // GET /api/football
 // ---------------------------------------------------------------------------
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const matchId = searchParams.get("matchId");
+  const league = searchParams.get("league");
+
+  // If matchId and league are provided, return the full summary (lineups, detailed stats, events)
+  if (matchId && league) {
+    try {
+      const summary = await fetchSummary(league, matchId);
+      if (!summary) {
+        return NextResponse.json({ error: "Match summary not found" }, { status: 404 });
+      }
+
+      // Map statistics
+      const boxscoreTeams = (summary.boxscore as any)?.teams;
+      
+      const getStat = (teamsList: any[], isHome: boolean, name: string): number => {
+        const teamObj = teamsList?.find((t: any) => isHome ? t.homeAway === "home" : t.homeAway === "away") || (isHome ? teamsList?.[0] : teamsList?.[1]);
+        if (!teamObj?.statistics) return 0;
+        const s = teamObj.statistics.find((st: any) => st.name === name);
+        if (!s) return 0;
+        const raw = s.value ?? parseFloat(s.displayValue ?? "0");
+        return isNaN(raw) ? 0 : raw;
+      };
+
+      const mapDetailedStats = (teamsList: any[], isHome: boolean) => {
+        const totalPassesVal = getStat(teamsList, isHome, "totalPasses") || getStat(teamsList, isHome, "passes");
+        const passPctVal = getStat(teamsList, isHome, "passPct") || getStat(teamsList, isHome, "passCompletionPct");
+        const passAccuracy = passPctVal <= 1 ? Math.round(passPctVal * 100) : Math.round(passPctVal);
+
+        return {
+          possession: Math.round(getStat(teamsList, isHome, "possessionPct")) || 50,
+          shots: Math.round(getStat(teamsList, isHome, "totalShots")) || 0,
+          shotsOnTarget: Math.round(getStat(teamsList, isHome, "shotsOnTarget")) || 0,
+          fouls: Math.round(getStat(teamsList, isHome, "foulsCommitted")) || 0,
+          yellowCards: Math.round(getStat(teamsList, isHome, "yellowCards")) || 0,
+          redCards: Math.round(getStat(teamsList, isHome, "redCards")) || 0,
+          corners: Math.round(getStat(teamsList, isHome, "wonCorners")) || 0,
+          passes: Math.round(totalPassesVal) || 0,
+          passAccuracy: passAccuracy || 0,
+          saves: Math.round(getStat(teamsList, isHome, "saves")) || 0,
+        };
+      };
+
+      const stats = {
+        home: mapDetailedStats(boxscoreTeams, true),
+        away: mapDetailedStats(boxscoreTeams, false),
+      };
+
+      // Map lineups/rosters
+      const rostersData = summary.rosters as any[];
+      const mapRoster = (isHome: boolean) => {
+        const teamRoster = rostersData?.find((r: any) => isHome ? r.homeAway === "home" : r.homeAway === "away") || (isHome ? rostersData?.[0] : rostersData?.[1]);
+        if (!teamRoster) {
+          return { formation: "", starters: [], bench: [] };
+        }
+
+        const rosterList = Array.isArray(teamRoster.roster) ? teamRoster.roster : [];
+        const starters = rosterList
+          .filter((p: any) => p.starter === true)
+          .map((p: any) => ({
+            id: String(p.athlete?.id || ""),
+            name: String(p.athlete?.displayName || p.athlete?.fullName || ""),
+            jersey: String(p.jersey || ""),
+            position: String(p.position?.displayName || p.position?.name || ""),
+            formationPlace: p.formationPlace ? String(p.formationPlace) : undefined,
+          }))
+          .sort((a: any, b: any) => (parseInt(a.formationPlace) || 0) - (parseInt(b.formationPlace) || 0));
+
+        const bench = rosterList
+          .filter((p: any) => p.starter !== true)
+          .map((p: any) => ({
+            id: String(p.athlete?.id || ""),
+            name: String(p.athlete?.displayName || p.athlete?.fullName || ""),
+            jersey: String(p.jersey || ""),
+            position: String(p.position?.displayName || p.position?.name || ""),
+          }));
+
+        return {
+          formation: String(teamRoster.formation || ""),
+          starters,
+          bench,
+        };
+      };
+
+      const lineups = rostersData ? {
+        home: mapRoster(true),
+        away: mapRoster(false),
+      } : undefined;
+
+      // Map events timeline
+      const keyEvents = summary.keyEvents as any[] || [];
+      const homeTeamId = String((summary.header as any)?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "home")?.id || "");
+      const awayTeamId = String((summary.header as any)?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "away")?.id || "");
+
+      const mappedEvents = keyEvents.map((e: any) => {
+        const typeKey = e.type?.type || "";
+        let type: "goal" | "card" | "sub" | "info" = "info";
+        if (ESPN_EVENT_TYPE_MAP[typeKey] === "goal") type = "goal";
+        else if (ESPN_EVENT_TYPE_MAP[typeKey] === "card") type = "card";
+        else if (ESPN_EVENT_TYPE_MAP[typeKey] === "sub" || typeKey === "substitution" || typeKey.includes("substitution")) type = "sub";
+        
+        const clockStr = e.clock?.displayValue || "";
+        const minute = parseInt(clockStr.replace("'", "").split("+")[0], 10) || 0;
+        const eventTeamId = String(e.teamId ?? "");
+        const team: "home" | "away" = eventTeamId === awayTeamId ? "away" : "home";
+        
+        return {
+          minute,
+          clockDisplay: clockStr,
+          type,
+          detail: e.text || (Array.isArray(e.participants) ? e.participants[0] : "") || "",
+          team,
+        };
+      });
+
+      mappedEvents.sort((a, b) => a.minute - b.minute);
+
+      const venueObj = (summary.gameInfo as any)?.venue;
+      const venue = venueObj?.fullName ? String(venueObj.fullName) : undefined;
+      const officialsList = (summary.gameInfo as any)?.officials as any[];
+      const officials = Array.isArray(officialsList) ? officialsList.map((o: any) => String(o.fullName)) : undefined;
+
+      const detailResponse = {
+        id: matchId,
+        status: mapStatus((summary.header as any)?.competitions?.[0]?.status),
+        elapsedDisplay: getElapsed((summary.header as any)?.competitions?.[0]?.status).elapsedDisplay,
+        homeScore: parseInt(String((summary.header as any)?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "home")?.score ?? "0"), 10),
+        awayScore: parseInt(String((summary.header as any)?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "away")?.score ?? "0"), 10),
+        venue,
+        officials,
+        stats,
+        events: mappedEvents,
+        lineups,
+      };
+
+      return NextResponse.json(detailResponse, {
+        headers: { "Cache-Control": "no-store" },
+      });
+    } catch (err) {
+      console.error("[football/route] Failed to fetch match details:", err);
+      return NextResponse.json({ error: "Failed to fetch match details" }, { status: 502 });
+    }
+  }
+
   // Return cached response if still fresh
   const now = Date.now();
   if (cache && now - cache.ts < CACHE_TTL) {
@@ -452,15 +597,10 @@ export async function GET() {
 
     // -----------------------------------------------------------------------
     // Step 2 — Determine which matches need summaries
-    //   • LIVE/HT  → need for live stats + events
-    //   • FT       → use one per league for standings
-    //   • SCHEDULED → no summary needed
-    //   Cap at 10 concurrent summary fetches to respect ESPN's servers
     // -----------------------------------------------------------------------
     const prioritised: RawMatch[] = [];
     const seenIds = new Set<string>();
 
-    // First pass: LIVE/HT matches (most important — real-time data)
     for (const m of allMatches) {
       if ((m.status === "LIVE" || m.status === "HT") && !seenIds.has(m.id)) {
         prioritised.push(m);
@@ -468,7 +608,6 @@ export async function GET() {
       }
     }
 
-    // Second pass: one FT match per league for standings
     const standingsRepresentative: Record<string, RawMatch> = {};
     for (const m of allMatches) {
       if (
@@ -483,7 +622,6 @@ export async function GET() {
       }
     }
 
-    // Limit to 10 concurrent summary requests
     const summaryBatch = prioritised.slice(0, 10);
 
     // -----------------------------------------------------------------------
@@ -508,12 +646,11 @@ export async function GET() {
     // Step 4 — Enrich matches with summary data (events + stats)
     // -----------------------------------------------------------------------
     const enrichedMatches: Match[] = allMatches.map((match) => {
-      const { leagueSlug, homeTeamId, awayTeamId, ...publicMatch } = match;
+      const { homeTeamId, awayTeamId, ...publicMatch } = match;
       const summary = summaryMap.get(match.id);
 
       if (!summary) return publicMatch;
 
-      // Map key events
       const keyEvents = summary.keyEvents as
         | Array<{
             type?: { type?: string };
@@ -528,7 +665,6 @@ export async function GET() {
         ? mapKeyEvents(keyEvents, homeTeamId, awayTeamId)
         : [];
 
-      // Map boxscore stats
       const boxscoreTeams = (
         summary.boxscore as { teams?: Array<Record<string, unknown>> } | undefined
       )?.teams;
@@ -545,7 +681,6 @@ export async function GET() {
 
     // -----------------------------------------------------------------------
     // Step 5 — Build standings from summary data
-    // Only leagues that had a FT/LIVE match get standings
     // -----------------------------------------------------------------------
     const standings: CompetitionStandings[] = [];
     const seenStandingsLeagues = new Set<string>();
@@ -578,7 +713,6 @@ export async function GET() {
     });
   } catch (err) {
     console.error("[football/route] Fatal error:", err);
-    // Return cached data (even if stale) as fallback rather than a hard error
     if (cache) {
       return NextResponse.json(cache.data, {
         headers: { "Cache-Control": "no-store" },
