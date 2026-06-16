@@ -24,9 +24,12 @@ import {
   ShieldAlert,
   PictureInPicture,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  Trophy
 } from "lucide-react";
 import { FaGithub, FaYoutube, FaLinkedin, FaGlobe } from "react-icons/fa6";
+import SportsHub from "./SportsHub";
+import SportsHudOverlay from "./SportsHudOverlay";
 
 interface Channel {
   id: string;
@@ -172,12 +175,22 @@ export default function LoopinLiveStream() {
   const [activePlaylistId, setActivePlaylistId] = useState<string>("default");
 
   // Custom playlist loading states
-  const [playlistTab, setPlaylistTab] = useState<"browse" | "manage">("browse");
+  const [playlistTab, setPlaylistTab] = useState<"browse" | "sports" | "manage">("browse");
   const [importUrl, setImportUrl] = useState("");
   const [playlistName, setPlaylistName] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Football Data Integration States
+  const [footballMatches, setFootballMatches] = useState<any[]>([]);
+  const [footballStandings, setFootballStandings] = useState<any[]>([]);
+  const [footballLoading, setFootballLoading] = useState<boolean>(false);
+  // Tracks the very first fetch — skeletons only show during this phase
+  const [footballInitialLoading, setFootballInitialLoading] = useState<boolean>(true);
+  const footballHasLoadedRef = useRef(false);
+  const [footballLastUpdated, setFootballLastUpdated] = useState<Date | null>(null);
+  const [isSportsHudOpen, setIsSportsHudOpen] = useState<boolean>(false);
 
   const [playerStatus, setPlayerStatus] = useState<
     "idle" | "playing" | "loading" | "error"
@@ -234,6 +247,40 @@ export default function LoopinLiveStream() {
       setLastSuccessfulChannel(selectedChannel);
     }
   }, [playerStatus, selectedChannel]);
+
+  // Football/Sports API fetching
+  const fetchFootballData = useCallback(async () => {
+    setFootballLoading(true);
+    try {
+      const response = await fetch("/api/football");
+      if (response.ok) {
+        const data = await response.json();
+        setFootballMatches(data.matches || []);
+        setFootballStandings(data.standings || []);
+        setFootballLastUpdated(new Date());
+        // Mark initial load complete on first successful fetch
+        if (!footballHasLoadedRef.current) {
+          footballHasLoadedRef.current = true;
+          setFootballInitialLoading(false);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching football data:", err);
+      // If first fetch fails, still clear the skeleton so we can show empty state
+      if (!footballHasLoadedRef.current) {
+        footballHasLoadedRef.current = true;
+        setFootballInitialLoading(false);
+      }
+    } finally {
+      setFootballLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchFootballData();
+    const interval = setInterval(fetchFootballData, 30000); // 30 seconds
+    return () => clearInterval(interval);
+  }, [fetchFootballData]);
 
   // YouTube-like Double Tap Seek State
   const [activeSeekIndicator, setActiveSeekIndicator] = useState<{
@@ -357,8 +404,22 @@ export default function LoopinLiveStream() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore key events if user is typing in input elements
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.hasAttribute("contenteditable"))
+      ) {
+        return;
+      }
+
       if (e.key === "Escape") {
         setIsRotated(false);
+        setIsSportsHudOpen(false);
+      } else if (e.key === "s" || e.key === "S") {
+        setIsSportsHudOpen((prev) => !prev);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -1450,6 +1511,32 @@ export default function LoopinLiveStream() {
   const activePlaylist = playlists.find((p) => p.id === activePlaylistId);
   const isDefaultPlaylist = activePlaylistId === "default";
   const isFifaCategory = selectedCategory === "FIFA World Cup" && isDefaultPlaylist;
+
+  const handleTuneToChannelByName = useCallback((channelName: string) => {
+    // Try to find channel in current active playlist
+    let match = activePlaylist?.channels.find(
+      (c) => c.name.toLowerCase().includes(channelName.toLowerCase()) ||
+             channelName.toLowerCase().includes(c.name.toLowerCase())
+    );
+
+    // Try in all playlists if not found
+    if (!match) {
+      for (const p of playlists) {
+        match = p.channels.find(
+          (c) => c.name.toLowerCase().includes(channelName.toLowerCase()) ||
+                 channelName.toLowerCase().includes(c.name.toLowerCase())
+        );
+        if (match) break;
+      }
+    }
+
+    if (match) {
+      handleChannelSelect(match);
+    } else {
+      console.warn(`Broadcaster channel "${channelName}" not found.`);
+    }
+  }, [activePlaylist, playlists, handleChannelSelect]);
+
   const categories = useMemo(
     () =>
       isDefaultPlaylist
@@ -1951,6 +2038,17 @@ export default function LoopinLiveStream() {
 
                   {/* Right controls */}
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsSportsHudOpen((prev) => !prev);
+                      }}
+                      className={`p-1.5 rounded-lg hover:bg-white/10 text-white transition-colors ${isSportsHudOpen ? "text-primary bg-white/10" : ""
+                        }`}
+                      title="Toggle Sports HUD Overlay (Press S)"
+                    >
+                      <Trophy size={18} />
+                    </button>
                     {isPipSupported && (
                       <button
                         onClick={handlePip}
@@ -1981,6 +2079,14 @@ export default function LoopinLiveStream() {
                   </div>
                 </div>
               )}
+
+              {/* Sports HUD Overlay */}
+              <SportsHudOverlay
+                isOpen={isSportsHudOpen}
+                onClose={() => setIsSportsHudOpen(false)}
+                matches={footballMatches}
+                loading={footballLoading}
+              />
             </div>
           </div>
 
@@ -2112,7 +2218,7 @@ export default function LoopinLiveStream() {
           <div className="w-full glass-card p-4 sm:p-6 border border-white/5 rounded-2xl md:rounded-3xl bg-white/[0.01] flex flex-col h-[600px] sm:h-[700px]">
             {/* Playlist Header & Tab Bar */}
             <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-white/5 flex-wrap gap-2">
-              <div className="flex items-center bg-white/5 p-1 rounded-xl border border-white/5">
+              <div className="flex items-center bg-white/5 p-1 rounded-xl border border-white/5 flex-wrap">
                 <button
                   onClick={() => setPlaylistTab("browse")}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${playlistTab === "browse"
@@ -2122,6 +2228,16 @@ export default function LoopinLiveStream() {
                 >
                   <Tv size={14} />
                   <span>Browse Channels</span>
+                </button>
+                <button
+                  onClick={() => setPlaylistTab("sports")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${playlistTab === "sports"
+                      ? "bg-primary text-white shadow-lg shadow-primary/20"
+                      : "text-gray-400 hover:text-white"
+                    }`}
+                >
+                  <Trophy size={14} />
+                  <span>Sports Hub</span>
                 </button>
                 <button
                   onClick={() => setPlaylistTab("manage")}
@@ -2144,7 +2260,7 @@ export default function LoopinLiveStream() {
               </div>
             </div>
 
-            {playlistTab === "browse" ? (
+            {playlistTab === "browse" && (
               <>
                 {/* Search and Filters */}
                 <div className="space-y-3 sm:space-y-4 py-3 sm:py-4 border-b border-white/5">
@@ -2286,7 +2402,21 @@ export default function LoopinLiveStream() {
                   )}
                 </div>
               </>
-            ) : (
+            )}
+
+            {playlistTab === "sports" && (
+              <div className="flex-1 overflow-y-auto pt-4 pr-1 custom-scrollbar text-left">
+                <SportsHub
+                  matches={footballMatches}
+                  standings={footballStandings}
+                  loading={footballInitialLoading}
+                  lastUpdated={footballLastUpdated}
+                  onTuneToChannel={handleTuneToChannelByName}
+                />
+              </div>
+            )}
+
+            {playlistTab === "manage" && (
               <div className="flex-1 overflow-y-auto pt-4 pr-1 space-y-6 custom-scrollbar text-left">
                 {/* Import Playlist Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
