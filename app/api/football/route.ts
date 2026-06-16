@@ -677,21 +677,39 @@ export async function GET(request: Request) {
 
   try {
     // -----------------------------------------------------------------------
-    // Step 1 — Fetch scoreboards: today + tomorrow + day-after for upcoming matches
+    // Step 1 — Fetch scoreboards: 2 days back + today + 2 days forward
+    //   Past days ensure recent results (e.g. FIFA World Cup) are visible.
+    //   Future days ensure upcoming fixtures are captured.
     // -----------------------------------------------------------------------
+    const dayBeforeYesterday = getDateOffset(-2);
+    const yesterday = getDateOffset(-1);
     const tomorrow = getDateOffset(1);
     const dayAfter = getDateOffset(2);
 
-    const [todayResults, tomorrowResults, dayAfterResults] = await Promise.all([
+    const [
+      dayBeforeYesterdayResults,
+      yesterdayResults,
+      todayResults,
+      tomorrowResults,
+      dayAfterResults,
+    ] = await Promise.all([
+      Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, dayBeforeYesterday))),
+      Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, yesterday))),
       Promise.all(LEAGUES.map(fetchScoreboard)),
       Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, tomorrow))),
       Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, dayAfter))),
     ]);
 
-    // Merge and deduplicate by match ID (today takes priority)
+    // Merge and deduplicate by match ID (today takes priority, then outward)
     const seenMatchIds = new Set<string>();
     const allMatches: RawMatch[] = [];
-    for (const m of [...todayResults.flat(), ...tomorrowResults.flat(), ...dayAfterResults.flat()]) {
+    for (const m of [
+      ...todayResults.flat(),
+      ...yesterdayResults.flat(),
+      ...dayBeforeYesterdayResults.flat(),
+      ...tomorrowResults.flat(),
+      ...dayAfterResults.flat(),
+    ]) {
       if (!seenMatchIds.has(m.id)) {
         seenMatchIds.add(m.id);
         allMatches.push(m);
