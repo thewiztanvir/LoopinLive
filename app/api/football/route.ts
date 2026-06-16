@@ -192,7 +192,9 @@ function mapKeyEvents(
     clock?: { displayValue?: string };
     text?: string;
     teamId?: string | number;
-    participants?: string[];
+    team?: { id?: string | number };
+    participants?: any[];
+    shortText?: string;
   }>,
   homeTeamId: string,
   awayTeamId: string
@@ -208,12 +210,25 @@ function mapKeyEvents(
     // clockStr format: "33'" or "45'+2'"
     const minute = parseInt(clockStr.replace("'", "").split("+")[0], 10) || 0;
 
-    const eventTeamId = String(e.teamId ?? "");
+    // Use e.team?.id for reliable team matching, fall back to e.teamId
+    const eventTeamId = String(e.team?.id ?? e.teamId ?? "");
     // If teamId matches awayTeamId → away; otherwise default home
     const team: "home" | "away" =
       eventTeamId === String(awayTeamId) ? "away" : "home";
 
-    const detail = e.text || (Array.isArray(e.participants) ? e.participants[0] : "") || "";
+    // Format detail cleanly: only show player names for goals/cards/subs
+    let detail = "";
+    if (mapped === "sub") {
+      const pIn = e.participants?.[0]?.athlete?.displayName;
+      const pOut = e.participants?.[1]?.athlete?.displayName;
+      if (pIn && pOut) {
+        detail = `${pIn} 🔄 ${pOut}`;
+      } else {
+        detail = e.shortText || e.text || "";
+      }
+    } else {
+      detail = e.participants?.[0]?.athlete?.displayName || e.shortText || e.text || "";
+    }
 
     events.push({ minute, type: mapped, detail, team });
   }
@@ -539,14 +554,32 @@ export async function GET(request: Request) {
         
         const clockStr = e.clock?.displayValue || "";
         const minute = parseInt(clockStr.replace("'", "").split("+")[0], 10) || 0;
-        const eventTeamId = String(e.teamId ?? "");
+        
+        // Use e.team?.id for reliable team matching, fall back to e.teamId
+        const eventTeamId = String(e.team?.id ?? e.teamId ?? "");
         const team: "home" | "away" = eventTeamId === awayTeamId ? "away" : "home";
+        
+        // Format detail cleanly: only show player names for goals/cards/subs
+        let detail = "";
+        if (type === "sub") {
+          const pIn = e.participants?.[0]?.athlete?.displayName;
+          const pOut = e.participants?.[1]?.athlete?.displayName;
+          if (pIn && pOut) {
+            detail = `${pIn} 🔄 ${pOut}`;
+          } else {
+            detail = e.shortText || e.text || "";
+          }
+        } else if (type === "goal" || type === "card") {
+          detail = e.participants?.[0]?.athlete?.displayName || e.shortText || e.text || "";
+        } else {
+          detail = e.text || "";
+        }
         
         return {
           minute,
           clockDisplay: clockStr,
           type,
-          detail: e.text || (Array.isArray(e.participants) ? e.participants[0] : "") || "",
+          detail,
           team,
         };
       });
