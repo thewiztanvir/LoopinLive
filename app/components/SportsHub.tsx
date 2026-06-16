@@ -103,8 +103,11 @@ function formatTime(date: Date): string {
 }
 
 function formatStartTime(iso: string): string {
+  if (!iso) return "";
   return new Date(iso).toLocaleTimeString([], {
-    hour: "2-digit",
+    timeZone: "Asia/Dhaka",
+    hour12: true,
+    hour: "numeric",
     minute: "2-digit",
   });
 }
@@ -113,15 +116,33 @@ function formatMatchDate(iso: string): string {
   if (!iso) return "";
   const match = new Date(iso);
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrowStart = new Date(todayStart.getTime() + 86_400_000);
-  const dayAfterStart = new Date(todayStart.getTime() + 2 * 86_400_000);
-  const time = match.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  if (match >= todayStart && match < tomorrowStart) return `Today · ${time}`;
-  if (match >= tomorrowStart && match < dayAfterStart) return `Tomorrow · ${time}`;
-  const dayName = match.toLocaleDateString([], { weekday: "short" });
-  const day = match.getDate();
-  const month = match.toLocaleDateString([], { month: "short" });
+  
+  const toDhakaLocalDateStr = (d: Date) => {
+    return d.toLocaleDateString("en-US", { timeZone: "Asia/Dhaka" });
+  };
+  
+  const matchDhakaDateStr = toDhakaLocalDateStr(match);
+  const todayDhakaDateStr = toDhakaLocalDateStr(now);
+  const tomorrowDhakaDateStr = toDhakaLocalDateStr(new Date(now.getTime() + 86_400_000));
+  
+  const time = match.toLocaleTimeString([], {
+    timeZone: "Asia/Dhaka",
+    hour12: true,
+    hour: "numeric",
+    minute: "2-digit"
+  });
+  
+  if (matchDhakaDateStr === todayDhakaDateStr) {
+    return `Today · ${time}`;
+  }
+  if (matchDhakaDateStr === tomorrowDhakaDateStr) {
+    return `Tomorrow · ${time}`;
+  }
+  
+  const dayName = match.toLocaleDateString("en-US", { weekday: "short", timeZone: "Asia/Dhaka" });
+  const day = match.toLocaleDateString("en-US", { day: "numeric", timeZone: "Asia/Dhaka" });
+  const month = match.toLocaleDateString("en-US", { month: "short", timeZone: "Asia/Dhaka" });
+  
   return `${dayName} ${day} ${month} · ${time}`;
 }
 
@@ -610,7 +631,7 @@ export default function SportsHub({
 
           {/* ── UPCOMING ─────────────────────────────────────────────────────── */}
           {activeTab === "upcoming" && (
-            upcomingPreview.length === 0 ? (
+            upcomingMatches.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
                 <Clock className="w-10 h-10 text-gray-600 shrink-0" />
                 <p className="text-sm font-medium">No upcoming matches scheduled</p>
@@ -620,7 +641,7 @@ export default function SportsHub({
                 title="NEXT UP"
                 icon={<Clock className="w-3.5 h-3.5 text-blue-400" />}
                 titleClass="text-blue-400"
-                matches={upcomingPreview}
+                matches={upcomingMatches}
                 selectedMatch={selectedMatch}
                 onSelect={setSelectedMatch}
                 onTuneToChannel={onTuneToChannel}
@@ -630,7 +651,7 @@ export default function SportsHub({
 
           {/* ── RESULTS ──────────────────────────────────────────────────────── */}
           {activeTab === "results" && (
-            resultsPreview.length === 0 ? (
+            completedMatches.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
                 <CheckCircle className="w-10 h-10 text-gray-600 shrink-0" />
                 <p className="text-sm font-medium">No results yet</p>
@@ -640,7 +661,7 @@ export default function SportsHub({
                 title="LATEST RESULTS"
                 icon={<CheckCircle className="w-3.5 h-3.5 text-gray-500" />}
                 titleClass="text-gray-500"
-                matches={resultsPreview}
+                matches={completedMatches}
                 selectedMatch={selectedMatch}
                 onSelect={setSelectedMatch}
                 onTuneToChannel={onTuneToChannel}
@@ -883,7 +904,7 @@ function MatchCard({
             <div className="flex flex-col items-center justify-center bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl">
               <Clock className="w-4 h-4 text-blue-400 mb-1" />
               <span className="text-sm font-black text-blue-300 tabular-nums">
-                {new Date(match.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {formatStartTime(match.startTime)}
               </span>
             </div>
           ) : (
@@ -1414,7 +1435,7 @@ function MatchDetailPanel({
                 <div className="flex flex-col items-center">
                   <Clock className="w-4 h-4 text-blue-400 mb-0.5" />
                   <span className="text-sm font-black text-blue-300 tabular-nums">
-                    {new Date(match.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {formatStartTime(match.startTime)}
                   </span>
                 </div>
               ) : (
