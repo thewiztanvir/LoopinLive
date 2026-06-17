@@ -979,54 +979,141 @@ function MatchCard({
         </div>
       </div>
 
-      {/* ── Main Scorecard Body (Horizontal TV layout) ── */}
-      <div className="px-5 py-5 flex items-center justify-between gap-4">
-        {/* Home Team */}
-        <div className="flex-1 flex flex-col items-end min-w-0">
-          <div className="flex items-center justify-end gap-3 w-full min-w-0">
-            <span className={`text-sm md:text-base font-extrabold text-white text-right truncate ${isFT && match.homeScore < match.awayScore ? "opacity-50" : ""}`}>
+      {/* ── Main Scorecard Body ── */}
+      <div className="px-3 sm:px-5 py-4 sm:py-5">
+
+        {/* ── Mobile Layout: vertical stack (< sm) ── */}
+        <div className="flex sm:hidden flex-col gap-2.5">
+
+          {/* Home Team Row */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <TeamLogo src={match.homeLogo} name={match.homeTeam} size={28} />
+            <span
+              className={`flex-1 text-sm font-extrabold text-white leading-snug min-w-0
+                ${isFT && match.homeScore < match.awayScore ? "opacity-50" : ""}`}
+            >
               {match.homeTeam}
             </span>
-            <TeamLogo src={match.homeLogo} name={match.homeTeam} size={32} />
-          </div>
-          {homeGoals.length > 0 && renderScorersList(homeGoals, "right")}
-        </div>
-
-        {/* Center: Main Score / Time block */}
-        <div className="flex flex-col items-center justify-center shrink-0 min-w-[120px]">
-          {isScheduled ? (
-            <div className="flex flex-col items-center justify-center bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl">
-              <Clock className="w-4 h-4 text-blue-400 mb-1" />
-              <span className="text-sm font-black text-blue-300 tabular-nums">
-                {new Date(match.startTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Dhaka", hour12: true })}
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center gap-3 bg-black/40 px-4 py-2 rounded-xl border border-white/5 shadow-inner">
+            {!isScheduled && (
               <ScoreDisplay
                 value={match.homeScore}
                 winning={match.homeScore > match.awayScore}
-                className="text-3xl font-black"
+                className="text-2xl font-black shrink-0 ml-1"
               />
-              <span className="text-white/20 font-bold text-lg select-none">:</span>
+            )}
+          </div>
+
+          {/* Separator / scheduled time */}
+          <div className="flex items-center gap-2 px-1">
+            <div className="flex-1 h-px bg-white/[0.06]" />
+            {isScheduled ? (
+              <div className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-lg">
+                <Clock className="w-3 h-3 text-blue-400 shrink-0" />
+                <span className="text-xs font-black text-blue-300 tabular-nums">
+                  {new Date(match.startTime).toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: "Asia/Dhaka",
+                    hour12: true,
+                  })}
+                </span>
+              </div>
+            ) : (
+              <span className="text-[10px] font-bold text-white/25 tracking-widest uppercase px-2 select-none">
+                vs
+              </span>
+            )}
+            <div className="flex-1 h-px bg-white/[0.06]" />
+          </div>
+
+          {/* Away Team Row */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <TeamLogo src={match.awayLogo} name={match.awayTeam} size={28} />
+            <span
+              className={`flex-1 text-sm font-extrabold text-white leading-snug min-w-0
+                ${isFT && match.awayScore < match.homeScore ? "opacity-50" : ""}`}
+            >
+              {match.awayTeam}
+            </span>
+            {!isScheduled && (
               <ScoreDisplay
                 value={match.awayScore}
                 winning={match.awayScore > match.homeScore}
-                className="text-3xl font-black"
+                className="text-2xl font-black shrink-0 ml-1"
               />
+            )}
+          </div>
+
+          {/* Scorers list (mobile) */}
+          {(homeGoals.length > 0 || awayGoals.length > 0) && (
+            <div className="flex flex-col gap-0.5 pt-1.5 border-t border-white/[0.04]">
+              {homeGoals.length > 0 && renderScorersList(homeGoals, "left")}
+              {awayGoals.length > 0 && renderScorersList(awayGoals, "left")}
             </div>
           )}
         </div>
 
-        {/* Away Team */}
-        <div className="flex-1 flex flex-col items-start min-w-0">
-          <div className="flex items-center justify-start gap-3 w-full min-w-0">
-            <TeamLogo src={match.awayLogo} name={match.awayTeam} size={32} />
-            <span className={`text-sm md:text-base font-extrabold text-white text-left truncate ${isFT && match.awayScore < match.homeScore ? "opacity-50" : ""}`}>
-              {match.awayTeam}
-            </span>
+        {/* ── Desktop Layout: horizontal TV layout (sm+) ── */}
+        <div className="hidden sm:flex items-center justify-between gap-4">
+
+          {/* Home Team */}
+          <div className="flex-1 flex flex-col items-end min-w-0">
+            <div className="flex items-center justify-end gap-3 w-full min-w-0">
+              <span
+                className={`text-base font-extrabold text-white text-right truncate
+                  ${isFT && match.homeScore < match.awayScore ? "opacity-50" : ""}`}
+              >
+                {match.homeTeam}
+              </span>
+              <TeamLogo src={match.homeLogo} name={match.homeTeam} size={32} />
+            </div>
+            {homeGoals.length > 0 && renderScorersList(homeGoals, "right")}
           </div>
-          {awayGoals.length > 0 && renderScorersList(awayGoals, "left")}
+
+          {/* Center: Main Score / Time block */}
+          <div className="flex flex-col items-center justify-center shrink-0 min-w-[120px]">
+            {isScheduled ? (
+              <div className="flex flex-col items-center justify-center bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl">
+                <Clock className="w-4 h-4 text-blue-400 mb-1" />
+                <span className="text-sm font-black text-blue-300 tabular-nums">
+                  {new Date(match.startTime).toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: "Asia/Dhaka",
+                    hour12: true,
+                  })}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-3 bg-black/40 px-4 py-2 rounded-xl border border-white/5 shadow-inner">
+                <ScoreDisplay
+                  value={match.homeScore}
+                  winning={match.homeScore > match.awayScore}
+                  className="text-3xl font-black"
+                />
+                <span className="text-white/20 font-bold text-lg select-none">:</span>
+                <ScoreDisplay
+                  value={match.awayScore}
+                  winning={match.awayScore > match.homeScore}
+                  className="text-3xl font-black"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Away Team */}
+          <div className="flex-1 flex flex-col items-start min-w-0">
+            <div className="flex items-center justify-start gap-3 w-full min-w-0">
+              <TeamLogo src={match.awayLogo} name={match.awayTeam} size={32} />
+              <span
+                className={`text-base font-extrabold text-white text-left truncate
+                  ${isFT && match.awayScore < match.homeScore ? "opacity-50" : ""}`}
+              >
+                {match.awayTeam}
+              </span>
+            </div>
+            {awayGoals.length > 0 && renderScorersList(awayGoals, "left")}
+          </div>
         </div>
       </div>
 
