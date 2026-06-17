@@ -461,10 +461,15 @@ async function fetchScoreboard(league: (typeof LEAGUES)[0]): Promise<RawMatch[]>
 }
 
 // Helper: get date string in YYYYMMDD format offset by N days from now
+// Uses Asia/Dhaka timezone so that the "today" date matches what Dhaka users see,
+// preventing the UTC midnight mismatch (Dhaka is UTC+6).
 function getDateOffset(offsetDays: number): string {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().slice(0, 10).replace(/-/g, "");
+  // Format in Dhaka local time so early-morning Dhaka requests don't get UTC's "yesterday"
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka" })
+    .format(d)
+    .replace(/-/g, "");
 }
 
 // ---------------------------------------------------------------------------
@@ -686,6 +691,8 @@ export async function GET(request: Request) {
     const tomorrow = getDateOffset(1);
     const dayAfter = getDateOffset(2);
 
+    const today = getDateOffset(0); // Dhaka local date e.g. "20260617"
+
     const [
       dayBeforeYesterdayResults,
       yesterdayResults,
@@ -695,7 +702,9 @@ export async function GET(request: Request) {
     ] = await Promise.all([
       Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, dayBeforeYesterday))),
       Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, yesterday))),
-      Promise.all(LEAGUES.map(fetchScoreboard)),
+      // Always pass the explicit Dhaka date so ESPN doesn't default to UTC "today"
+      // (without this, Dhaka users between midnight–6am get yesterday's matches)
+      Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, today))),
       Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, tomorrow))),
       Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, dayAfter))),
     ]);

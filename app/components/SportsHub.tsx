@@ -1125,22 +1125,35 @@ function MatchDetailPanel({
     }
   }, [match.id, match.leagueSlug]);
 
+  // Stable interval ref — cleared and restarted whenever match.status changes
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
+    // Always fetch immediately on open or status change
     fetchDetails();
 
-    // Poll every 15 seconds for live matches
+    // Clear any existing interval before (re)starting
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    // Poll every 10 seconds while the match is live or at half-time
     const isLive = match.status === "LIVE" || match.status === "HT";
-    let interval: NodeJS.Timeout;
     if (isLive) {
-      interval = setInterval(() => {
+      intervalRef.current = setInterval(() => {
         fetchDetails(true);
-      }, 15000);
+      }, 10_000);
     }
 
     return () => {
-      if (interval) clearInterval(interval);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
-  }, [fetchDetails, match.status]);
+  // Re-run whenever the match id, slug or live status changes
+  }, [fetchDetails, match.id, match.leagueSlug, match.status]);
 
   const renderScorersList = (goals: any[], align: "left" | "right") => {
     const grouped: Record<string, number[]> = {};
@@ -1482,35 +1495,42 @@ function MatchDetailPanel({
   };
 
   return (
+    // Backdrop — covers full screen including safe areas, scrollable on very small screens
     <div
-      className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 md:p-6 overflow-y-auto"
+      className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 overflow-y-auto"
+      style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
       onClick={onClose}
     >
+      {/* Centering wrapper */}
+      <div className="min-h-full flex items-center justify-center p-3 sm:p-6">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ duration: 0.25, ease: "easeOut" }}
-        className="relative bg-gradient-to-b from-slate-900/95 via-black/95 to-black border border-white/10 rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col p-6 overflow-hidden max-h-[90vh]"
+        className="relative bg-gradient-to-b from-slate-900/95 via-black/95 to-black border border-white/10 rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between mb-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <Trophy className="w-4 h-4 text-primary" />
-            <span className="text-xs font-extrabold text-white uppercase tracking-wider">
+        {/* ── Sticky Modal Header — always visible, never scrolls away ── */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-5 pt-4 pb-3 shrink-0 bg-slate-900/95 backdrop-blur-sm border-b border-white/[0.06] rounded-t-3xl">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Trophy className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-xs font-extrabold text-white uppercase tracking-wider truncate">
               {match.competition}
             </span>
-            {getModalStatusBadge()}
+            <span className="shrink-0">{getModalStatusBadge()}</span>
           </div>
+          {/* Close button — always visible, large enough tap target for mobile */}
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer border-none bg-transparent outline-none"
+            className="ml-3 shrink-0 flex items-center justify-center w-8 h-8 rounded-xl bg-white/5 hover:bg-white/15 active:bg-white/20 text-gray-300 hover:text-white transition-colors cursor-pointer border border-white/10 outline-none"
             aria-label="Close details"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
+        {/* Scrollable body */}
+        <div className="flex flex-col overflow-y-auto max-h-[calc(90vh-56px)] custom-scrollbar px-5 pt-4 pb-6 gap-5">
 
         {/* Score Banner */}
         <div className="flex flex-col gap-3 py-4 px-5 bg-white/[0.02] border border-white/5 rounded-2xl mb-5 shrink-0">
@@ -1568,7 +1588,7 @@ function MatchDetailPanel({
         </div>
 
         {/* Tab Selection */}
-        <div className="flex gap-1 p-1 rounded-xl bg-white/5 mb-4 shrink-0">
+        <div className="flex gap-1 p-1 rounded-xl bg-white/5 shrink-0">
           {[
             { id: "timeline", label: "Timeline", icon: <Activity className="w-3.5 h-3.5" /> },
             { id: "stats", label: "Statistics", icon: <BarChart3 className="w-3.5 h-3.5" /> },
@@ -1589,17 +1609,17 @@ function MatchDetailPanel({
           ))}
         </div>
 
-        {/* Tab Contents Container */}
-        <div className="flex-1 overflow-y-auto pr-1 space-y-6 custom-scrollbar min-h-[30vh]">
+        {/* Tab Content */}
+        <div className="space-y-4">
           {loading && (
             <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
               <RefreshCw className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-xs font-semibold">Loading live match details...</p>
+              <p className="text-xs font-semibold">Loading match details...</p>
             </div>
           )}
 
           {error && !detailData && (
-            <div className="flex flex-col items-center justify-center py-16 text-rose-400 text-center px-4 gap-2">
+            <div className="flex flex-col items-center justify-center py-12 text-rose-400 text-center px-4 gap-2">
               <span className="text-2xl">⚠️</span>
               <p className="text-sm font-semibold">{error}</p>
               <button
@@ -1611,7 +1631,6 @@ function MatchDetailPanel({
             </div>
           )}
 
-          {/* Details render if detailsData is ready */}
           {!loading && detailData && (
             <>
               {activeSubTab === "timeline" && renderTimelineTab()}
@@ -1623,7 +1642,7 @@ function MatchDetailPanel({
 
         {/* Footer info (Venue/Officials) */}
         {detailData && (detailData.venue || (detailData.officials && detailData.officials.length > 0)) && (
-          <div className="border-t border-white/5 pt-3.5 mt-4 text-[10px] text-gray-500 flex flex-wrap gap-4 justify-between items-center shrink-0">
+          <div className="border-t border-white/5 pt-3.5 text-[10px] text-gray-500 flex flex-wrap gap-4 justify-between items-center">
             {detailData.venue && (
               <span className="flex items-center gap-1 font-medium">
                 <MapPin className="w-3.5 h-3.5 text-gray-500" />
@@ -1637,7 +1656,9 @@ function MatchDetailPanel({
             )}
           </div>
         )}
+        </div>{/* end scrollable body */}
       </motion.div>
+      </div>{/* end centering wrapper */}
     </div>
   );
 }
