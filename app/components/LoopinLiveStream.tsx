@@ -278,9 +278,13 @@ export default function LoopinLiveStream() {
 
   useEffect(() => {
     fetchFootballData();
-    const interval = setInterval(fetchFootballData, 30000); // 30 seconds
+    // Adaptive poll: 15s when live matches exist, 30s otherwise
+    const hasLive = footballMatches.some(
+      (m: { status: string }) => m.status === "LIVE" || m.status === "HT"
+    );
+    const interval = setInterval(fetchFootballData, hasLive ? 15_000 : 30_000);
     return () => clearInterval(interval);
-  }, [fetchFootballData]);
+  }, [fetchFootballData, footballMatches]);
 
   // YouTube-like Double Tap Seek State
   const [activeSeekIndicator, setActiveSeekIndicator] = useState<{
