@@ -218,8 +218,12 @@ export default function LoopinLiveStream() {
   const [isPip, setIsPip] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isRotated, setIsRotated] = useState(false);
+  const [focusedChannelId, setFocusedChannelId] = useState<string | null>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unmuteCleanupRef = useRef<(() => void) | null>(null);
+  const filteredChannelsRef = useRef<Channel[]>([]);
+  const selectedChannelRef = useRef<Channel | null>(null);
+  const focusedChannelIdRef = useRef<string | null>(null);
 
   const hlsRef = useRef<Hls | null>(null);
   const shakaPlayerRef = useRef<any>(null);
@@ -407,6 +411,12 @@ export default function LoopinLiveStream() {
   }, [isRotated]);
 
   useEffect(() => {
+    if (selectedChannel) {
+      setFocusedChannelId(selectedChannel.id);
+    }
+  }, [selectedChannel]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore key events if user is typing in input elements
       const activeEl = document.activeElement;
@@ -420,17 +430,153 @@ export default function LoopinLiveStream() {
       }
 
       if (e.key === "Escape") {
+        e.preventDefault();
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch((err) => console.warn("Exit fullscreen failed:", err));
+        }
         setIsRotated(false);
         setIsSportsHudOpen(false);
+      } else if (e.key === "Backspace") {
+        e.preventDefault();
+        if (isSportsHudOpen) {
+          setIsSportsHudOpen(false);
+        } else if (document.fullscreenElement) {
+          document.exitFullscreen().catch((err) => console.warn("Exit fullscreen failed:", err));
+        } else if (selectedChannelRef.current) {
+          setSelectedChannel(null);
+          setPlayerStatus("idle");
+          if (hlsRef.current) {
+            hlsRef.current.destroy();
+            hlsRef.current = null;
+          }
+          if (shakaPlayerRef.current) {
+            shakaPlayerRef.current.destroy();
+            shakaPlayerRef.current = null;
+          }
+          if (videoRef.current) {
+            videoRef.current.src = "";
+          }
+          if (unmuteCleanupRef.current) {
+            unmuteCleanupRef.current();
+          }
+          loadedUrlRef.current = null;
+        }
       } else if (e.key === "s" || e.key === "S") {
         setIsSportsHudOpen((prev) => !prev);
+      } else if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        handleFullscreen();
+      } else if (e.key === "m" || e.key === "M") {
+        e.preventDefault();
+        handleMuteUnmute();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const video = videoRef.current;
+        if (video) {
+          const newVol = Math.min(1.0, video.volume + 0.05);
+          video.volume = newVol;
+          video.muted = false;
+          setVolume(newVol);
+          setIsMuted(false);
+          userMutedRef.current = false;
+          resetControlsTimeout();
+        }
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const video = videoRef.current;
+        if (video) {
+          const newVol = Math.max(0.0, video.volume - 0.05);
+          video.volume = newVol;
+          setVolume(newVol);
+          if (newVol === 0) {
+            video.muted = true;
+            setIsMuted(true);
+            userMutedRef.current = true;
+          } else {
+            video.muted = false;
+            setIsMuted(false);
+            userMutedRef.current = false;
+          }
+          resetControlsTimeout();
+        }
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        const list = filteredChannelsRef.current;
+        if (list.length === 0) return;
+        const currentIdx = list.findIndex((c) => c.id === focusedChannelIdRef.current);
+        let nextIdx = 0;
+        if (currentIdx !== -1) {
+          nextIdx = (currentIdx + 1) % list.length;
+        } else if (selectedChannelRef.current) {
+          const selIdx = list.findIndex((c) => c.id === selectedChannelRef.current?.id);
+          if (selIdx !== -1) {
+            nextIdx = (selIdx + 1) % list.length;
+          }
+        }
+        const nextChan = list[nextIdx];
+        setFocusedChannelId(nextChan.id);
+
+        // Scroll into view
+        const container = channelListRef.current;
+        if (container) {
+          const row = Math.floor(nextIdx / gridColumns);
+          const rowTop = row * (VIRTUAL_ROW_HEIGHT + VIRTUAL_GAP);
+          const rowBottom = rowTop + VIRTUAL_ROW_HEIGHT;
+          if (rowTop < container.scrollTop) {
+            container.scrollTop = rowTop;
+          } else if (rowBottom > container.scrollTop + container.clientHeight) {
+            container.scrollTop = rowBottom - container.clientHeight;
+          }
+        }
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        const list = filteredChannelsRef.current;
+        if (list.length === 0) return;
+        const currentIdx = list.findIndex((c) => c.id === focusedChannelIdRef.current);
+        let prevIdx = 0;
+        if (currentIdx !== -1) {
+          prevIdx = (currentIdx - 1 + list.length) % list.length;
+        } else if (selectedChannelRef.current) {
+          const selIdx = list.findIndex((c) => c.id === selectedChannelRef.current?.id);
+          if (selIdx !== -1) {
+            prevIdx = (selIdx - 1 + list.length) % list.length;
+          }
+        }
+        const prevChan = list[prevIdx];
+        setFocusedChannelId(prevChan.id);
+
+        // Scroll into view
+        const container = channelListRef.current;
+        if (container) {
+          const row = Math.floor(prevIdx / gridColumns);
+          const rowTop = row * (VIRTUAL_ROW_HEIGHT + VIRTUAL_GAP);
+          const rowBottom = rowTop + VIRTUAL_ROW_HEIGHT;
+          if (rowTop < container.scrollTop) {
+            container.scrollTop = rowTop;
+          } else if (rowBottom > container.scrollTop + container.clientHeight) {
+            container.scrollTop = rowBottom - container.clientHeight;
+          }
+        }
+      } else if (e.key === "Enter") {
+        const active = document.activeElement;
+        if (active && (active.tagName === "BUTTON" || active.tagName === "A" || active.tagName === "INPUT")) {
+          return;
+        }
+        if (focusedChannelIdRef.current) {
+          e.preventDefault();
+          const list = filteredChannelsRef.current;
+          const chan = list.find((c) => c.id === focusedChannelIdRef.current);
+          if (chan) {
+            handleChannelSelect(chan);
+          }
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [gridColumns]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -1673,6 +1819,11 @@ export default function LoopinLiveStream() {
       .toUpperCase();
   };
 
+  // Sync keyboard navigation refs
+  filteredChannelsRef.current = filteredChannels;
+  selectedChannelRef.current = selectedChannel;
+  focusedChannelIdRef.current = focusedChannelId;
+
   return (
     <div className="max-w-7xl mx-auto space-y-4 md:space-y-6 pt-4 md:pt-6 min-h-screen pb-12 px-3 sm:px-4 md:px-6 text-white">
       {error ? (
@@ -2346,12 +2497,15 @@ export default function LoopinLiveStream() {
                       >
                         {virtualChannels.map((chan) => {
                           const isSelected = selectedChannel?.id === chan.id;
+                          const isFocused = focusedChannelId === chan.id;
                           return (
                             <button
                               key={chan.id}
                               onClick={() => handleChannelSelect(chan)}
-                              className={`w-full h-[68px] flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left transition-colors group ${isSelected
+                              className={`w-full h-[68px] flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left transition-all group ${isSelected
                                   ? "bg-primary/10 border-primary text-primary"
+                                  : isFocused
+                                  ? "bg-white/[0.08] border-primary/60 ring-2 ring-primary/40 text-white"
                                   : "bg-white/[0.02] border-white/5 text-white hover:bg-white/[0.05] hover:border-white/10"
                                 }`}
                             >
