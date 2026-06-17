@@ -424,6 +424,9 @@ export default function LoopinLiveStream() {
         setIsSportsHudOpen(false);
       } else if (e.key === "s" || e.key === "S") {
         setIsSportsHudOpen((prev) => !prev);
+      } else if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        handleFullscreen();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
