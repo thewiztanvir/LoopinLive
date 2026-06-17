@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#070414",
   "theme_color": "#8b5cf6",
-  "orientation": "any",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "/Loopin-Live-Logo.png",
