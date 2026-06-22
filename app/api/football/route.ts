@@ -601,15 +601,16 @@ export async function GET(request: Request) {
 
       // Map events timeline
       const keyEvents = summary.keyEvents as any[] || [];
-      const homeTeamId = String((summary.header as any)?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "home")?.id || "");
-      const awayTeamId = String((summary.header as any)?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "away")?.id || "");
+      const getTeamId = (c: any) => c?.team?.id ?? c?.id ?? "";
+      const homeTeamId = String(getTeamId((summary.header as any)?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "home")));
+      const awayTeamId = String(getTeamId((summary.header as any)?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "away")));
 
       const mappedEvents = keyEvents.map((e: any) => {
-        const typeKey = e.type?.type || "";
+        const typeKey = (e.type?.type || "").toLowerCase();
         let type: "goal" | "card" | "sub" | "info" = "info";
-        if (ESPN_EVENT_TYPE_MAP[typeKey] === "goal") type = "goal";
-        else if (ESPN_EVENT_TYPE_MAP[typeKey] === "card") type = "card";
-        else if (ESPN_EVENT_TYPE_MAP[typeKey] === "sub" || typeKey === "substitution" || typeKey.includes("substitution")) type = "sub";
+        if (typeKey.includes("goal") || ESPN_EVENT_TYPE_MAP[typeKey] === "goal") type = "goal";
+        else if (typeKey.includes("card") || ESPN_EVENT_TYPE_MAP[typeKey] === "card") type = "card";
+        else if (typeKey.includes("sub") || typeKey.includes("substitution") || ESPN_EVENT_TYPE_MAP[typeKey] === "sub") type = "sub";
         
         const clockStr = e.clock?.displayValue || "";
         const minute = parseInt(clockStr.replace("'", "").split("+")[0], 10) || 0;
