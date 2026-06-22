@@ -27,12 +27,12 @@ If you want to use the curated, lightweight IPTV channel database (containing 68
 
 - **JSON Format**:
   ```
-  https://raw.githubusercontent.com/SHAJON-404/iptv/refs/heads/main/app/data/channels.json
+  https://raw.githubusercontent.com/thewiztanvir/LoopinLive/refs/heads/main/app/data/channels.json
   ```
 
 - **M3U Playlist Format** (For Android TV, VLC, Kodi, or LoopinLive):
   ```
-  https://raw.githubusercontent.com/SHAJON-404/iptv/refs/heads/main/app/data/channels.m3u
+ https://raw.githubusercontent.com/thewiztanvir/LoopinLive/refs/heads/main/app/data/channels.m3u
   ```
 
 > [!IMPORTANT]
