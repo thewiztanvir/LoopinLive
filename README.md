@@ -1,107 +1,105 @@
-# LoopinLive - Watch Live TV Channels
+# LoopinLive
 
 <p align="center">
   <img src="public/Loopin-Live-Logo.png" alt="LoopinLive Logo" width="120" />
 </p>
 
-A modern, high-performance, and premium web-based LoopinLive player built with **Next.js 16**, **React 19**, and **Tailwind CSS v4**. Stream high-quality live TV channels directly from official broadcast sources with a cinematic user interface.
+LoopinLive is a production-grade web IPTV player engineered with **Next.js 16**, **React 19**, and **Tailwind CSS v4**. It provides enterprise-grade playback, advanced playlist management, curated live channel discovery, and integrated sports intelligence.
 
-**LoopinLive**: https://LoopinLiveTV.netlify.app
-
----
-
-## ✨ Features
-
-- 📺 **Cinematic Video Player**: Large, center-aligned, aspect-ratio locked media container utilizing HLS.js and native iOS Safari player engines. Supports Picture-in-Picture (PiP), custom volume controls, double-tap seek, and auto-fallback muted play.
-- 🌌 **3D CSS Net Background**: A highly optimized, static 3D perspective cyber grid with deep purple and cyan radial glows and a subtle viewport mesh overlay, designed for maximum performance (0% CPU/GPU overhead) on all devices.
-- 🔍 **Interactive Channel Grid**: Filter and search through thousands of Bangla and international live TV channels in real-time. Responsive grid display dynamically adjusts for mobile, tablet, and desktop viewports.
-- ⚡ **Full Skeleton UI Loading States**: Fully unified, custom-designed pulsing skeleton templates for every card element (Player, Details, Developer Info, Total Channels, and Channel List grid) to prevent layout shifts.
-- 🧭 **Glassmorphic Sticky Header**: A clean, luxurious sticky header with brand identification and active live broadcast pulsing status.
-- 🏆 **World Cup 2026 Announcement Popup**: A gorgeous, highly professional popup showcasing the official joint broadcasting rights (BTV, T Sports, Somoy TV) live in Bangladesh with custom high-contrast logo backdrops and ambient glowing animations.
+**Live Demo:** https://LoopinLiveTV.netlify.app
 
 ---
 
-## 🌍 Live TV Channels Database
+## Overview
 
-If you want to use the curated, lightweight IPTV channel database (containing 6800+ channels) in another project, media player, or Android TV, you can fetch the raw files directly:
+LoopinLive delivers a modern platform for streaming live television and sports content through a responsive browser experience. The application supports core IPTV workflows, including live playback, channel search, category filtering, playlist import, and real-time football match tracking.
 
-- **JSON Format**:
-  ```
+---
+
+## Key Capabilities
+
+- **High-quality streaming**: HLS and DASH playback with adaptive fallback behavior for native Safari and non-Safari browsers.
+- **Playlist management**: Load remote playlists via URL, upload local `.m3u`, `.m3u8`, or `.json` files, and persist user playlists in browser storage.
+- **Channel discovery**: Search and filter 6500+ channels by category, region, and curated collections.
+- **Sports integration**: Dedicated sports dashboard for live football scores, match events, standings, and FIFA World Cup 2026 coverage.
+- **Premium UI**: Responsive glassmorphism design, skeleton loading states, sticky navigation, and an optimized low-overhead visual background.
+- **Browser persistence**: Custom playlists and selections are stored locally for session continuity.
+
+---
+
+## Product Highlights
+
+### Streaming & Playback
+
+LoopinLive ships with a capable media layer that handles:
+
+- HLS playback with `hls.js` fallback on non-native platforms
+- DASH playback via `shaka-player`
+- native playback fallback for Safari
+- fullscreen mode and Picture-in-Picture support
+- custom volume and mute controls
+- robust error handling and stream recovery
+
+### Playlist Management
+
+Users can manage IPTV playlists using the following flows:
+
+- import playlist URLs
+- upload local `.m3u`, `.m3u8`, or `.json` files
+- browse and select saved playlists
+- delete custom playlists from local browser storage
+
+### Sports Experience
+
+LoopinLive includes a sports-oriented interface with live football data, including:
+
+- match scorecards and live status
+- recent goal and event listings
+- competition standings
+- FIFA World Cup 2026 announcement and dedicated channel category
+
+---
+
+## Data Sources
+
+The application includes built-in data files and API support for channel catalogs and sports content.
+
+- Primary channel catalog: `app/data/channels.json`
+- FIFA World Cup channel catalog: `app/data/fifa.json`
+- Generated M3U output: `app/data/channels.m3u`
+
+### Raw Data Access
+
+- JSON catalog
+  ```text
   https://raw.githubusercontent.com/thewiztanvir/LoopinLive/refs/heads/main/app/data/channels.json
   ```
-
-- **M3U Playlist Format** (For Android TV, VLC, Kodi, or LoopinLive):
-  ```
+- M3U playlist
+  ```text
   https://raw.githubusercontent.com/thewiztanvir/LoopinLive/refs/heads/main/app/data/channels.m3u
   ```
 
-> [!IMPORTANT]
-> **License & Credit Notice**: If you use this channel database or stream source list in your own projects, you **must share and display proper credit** to the original developer (**S. SHAJON**) along with a link back to this repository.
-
 ---
 
-## 🛠️ M3U Playlist Converter
-
-If you need the channel database in standard M3U format, you can use the built-in Node.js conversion script.
-
-### Usage
-
-1. **Quick Conversion** (using defaults: all JSON files in `app/data` ➔ corresponding `.m3u` files):
-   ```bash
-   npm run convert-m3u
-   ```
-   *Or run it directly:*
-   ```bash
-   node scripts/json-to-m3u.js
-   ```
-
-2. **Custom Paths**:
-   If you want to convert a specific JSON database only:
-   ```bash
-   node scripts/json-to-m3u.js <path-to-input.json> <path-to-output.m3u>
-   ```
-
----
-
-## 🛠️ Technology Stack
-
-- **Framework**: [Next.js 16 (App Router)](https://nextjs.org/)
-- **Library**: [React 19](https://react.dev/)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **Animations**: [Motion](https://motion.dev/) (formerly Framer Motion)
-- **Stream Engine**: [HLS.js](https://github.com/video-dev/hls.js/)
-
----
-
-## 🚀 Getting Started
+## Development
 
 ### Prerequisites
 
-Ensure you have **Node.js** (v18.x or newer) installed.
+- Node.js 18 or newer
 
-### Installation
+### Setup
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/thewiztanvir/LoopinLive.git
-   cd iptv
-   ```
+```bash
+git clone https://github.com/thewiztanvir/LoopinLive.git
+cd LoopinLive
+npm install
+npm run dev
+```
 
-2. Install the dependencies:
-   ```bash
-   npm install
-   ```
+Open http://localhost:3000 to launch the application.
 
-3. Run the development server:
-   ```bash
-   npm run dev
-   ```
+### Production build
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
-
-### Production Build
-
-To build the application for production:
 ```bash
 npm run build
 npm start
@@ -109,27 +107,50 @@ npm start
 
 ---
 
-## ⚠️ Disclaimer
+## Utility Scripts
 
-This repository does not host, store, retransmit, or own any television channels or media content. The JSON file and web player only reference publicly available stream links collected from open-source IPTV playlists and public internet sources. Channel availability may change, expire, or stop working at any time.
+The repository includes a JSON-to-M3U conversion utility for channel catalogs.
 
-If you are the copyright owner of any content and would like it removed, please open an issue or contact the developer.
+- Convert all supported JSON channel files:
+  ```bash
+  npm run convert-m3u
+  ```
+- Convert FIFA channels only:
+  ```bash
+  npm run convert-fifa
+  ```
+- Convert a custom JSON file:
+  ```bash
+  node scripts/json-to-m3u.js <path-to-input.json> <path-to-output.m3u>
+  ```
 
 ---
 
-## ❤️ Credits
+## Technology Stack
 
-Special thanks to all IPTV open-source repository maintainers and contributors whose publicly available playlists and stream sources make this collection and player possible.
+- **Next.js 16**
+- **React 19**
+- **Tailwind CSS v4**
+- **Motion** for animations
+- **HLS.js** for HLS playback
+- **Shaka Player** for DASH playback
 
 ---
 
-## 📄 License & Compliance
+## Compliance
 
-This project is open-source software licensed under the **GNU General Public License v3 (GPLv3)**.
+LoopinLive does not host or own any media content. It acts as a client application for publicly available IPTV streams and playlists. Channel availability may change over time.
 
-### Open Source Compliance Guidelines:
-1. **Copyleft Protection & Mandatory Open Source**: You are free to use, modify, and build upon everything in this repository, but any derivative player, application, or database **MUST remain fully open-source** and distributed under the same GPLv3 license.
-2. **Preserve Developer Attribution**: You must preserve all S. SHAJON copyright, developer profile links (GitHub, Telegram, Facebook), and licensing labels in both the user interface and code files.
-3. **No Commercial Ads or Betting/Gambling Promotions**: If you build your own IPTV player or service based on this codebase, database, or resources, you are **strictly prohibited** from integrating or displaying any form of commercial advertisements, pop-up ads, redirect ads, or betting/gambling promotions of any kind.
+If you are the copyright owner of any content presented through this repository and wish to request removal, please open an issue.
 
-Developed with ♥ by [Mitab Sany](mailto:mitabsany@gmail.com). Follow [GitHub Profile](https://github.com/thewiztanvir) for updates.
+---
+
+## Attribution
+
+Developed by Mitab Sany.
+
+---
+
+## License
+
+This project is licensed under the GNU General Public License v3 (GPLv3). Any derivative work based on this repository must remain open source under the same license and preserve attribution.
