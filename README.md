@@ -32,7 +32,7 @@ If you want to use the curated, lightweight IPTV channel database (containing 68
 
 - **M3U Playlist Format** (For Android TV, VLC, Kodi, or LoopinLive):
   ```
- https://raw.githubusercontent.com/thewiztanvir/LoopinLive/refs/heads/main/app/data/channels.m3u
+  https://raw.githubusercontent.com/thewiztanvir/LoopinLive/refs/heads/main/app/data/channels.m3u
   ```
 
 > [!IMPORTANT]
