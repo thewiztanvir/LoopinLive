@@ -1002,6 +1002,11 @@ function MatchCard({
               />
             )}
           </div>
+          {homeGoals.length > 0 && (
+            <div className="pl-9 -mt-1.5 mb-1">
+              {renderScorersList(homeGoals, "left")}
+            </div>
+          )}
 
           {/* Separator / scheduled time */}
           <div className="flex items-center gap-2 px-1">
@@ -1043,12 +1048,9 @@ function MatchCard({
               />
             )}
           </div>
-
-          {/* Scorers list (mobile) */}
-          {(homeGoals.length > 0 || awayGoals.length > 0) && (
-            <div className="flex flex-col gap-0.5 pt-1.5 border-t border-white/[0.04]">
-              {homeGoals.length > 0 && renderScorersList(homeGoals, "left")}
-              {awayGoals.length > 0 && renderScorersList(awayGoals, "left")}
+          {awayGoals.length > 0 && (
+            <div className="pl-9 -mt-1.5 mb-1">
+              {renderScorersList(awayGoals, "left")}
             </div>
           )}
         </div>
