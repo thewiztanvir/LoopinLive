@@ -96,7 +96,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/Loopin-Live-Logo.png" />
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {children}
         <ClientPopupWrapper showPopup={showPopup} />
       </body>
