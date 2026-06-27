@@ -1450,9 +1450,14 @@ export default function LoopinLiveStream() {
         if (Hls.isSupported() && !isSafari) {
           const hls = new Hls({
             enableWorker: true,
-            lowLatencyMode: true,
-            backBufferLength: 0,
-            startLevel: -1,
+  lowLatencyMode: true,
+  backBufferLength: 5,
+  startLevel: -1,
+  maxBufferLength: 8,
+  liveSyncDurationCount: 2,
+  liveMaxLatencyDurationCount: 5,
+  fragLoadingTimeOut: 20000,
+  manifestLoadingTimeOut: 20000,
           });
           hlsRef.current = hls;
           hls.attachMedia(video);
