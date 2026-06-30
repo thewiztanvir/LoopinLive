@@ -92,6 +92,14 @@ export interface Match {
   broadcasterRecommendation?: string;
   venue?: string;
   leagueSlug: string;
+  isKnockout?: boolean;
+  roundName?: string;
+  homePenaltyScore?: number;
+  awayPenaltyScore?: number;
+  homeWinner?: boolean;
+  awayWinner?: boolean;
+  homeAdvance?: boolean;
+  awayAdvance?: boolean;
 }
 
 export interface StandingTeam {
@@ -424,6 +432,23 @@ async function fetchScoreboardForDate(
       const venueObj = competition.venue as Record<string, unknown> | undefined;
       const venue = venueObj?.fullName ? String(venueObj.fullName) : undefined;
 
+      const seasonObj = (event.season as any);
+      let roundName: string | undefined = undefined;
+      if (seasonObj?.type?.name) {
+        roundName = String(seasonObj.type.name);
+      } else if (seasonObj?.slug) {
+        roundName = String(seasonObj.slug).replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      }
+      
+      const isKnockout = !!roundName && !roundName.toLowerCase().includes("group");
+
+      const homePenaltyScore = homeComp.shootoutScore !== undefined ? parseInt(String(homeComp.shootoutScore), 10) : undefined;
+      const awayPenaltyScore = awayComp.shootoutScore !== undefined ? parseInt(String(awayComp.shootoutScore), 10) : undefined;
+      const homeWinner = homeComp.winner as boolean | undefined;
+      const awayWinner = awayComp.winner as boolean | undefined;
+      const homeAdvance = homeComp.advance as boolean | undefined;
+      const awayAdvance = awayComp.advance as boolean | undefined;
+
       matches.push({
         id: String(event.id),
         competition: league.name,
@@ -445,6 +470,14 @@ async function fetchScoreboardForDate(
         leagueSlug: league.slug,
         homeTeamId: String(homeComp.id ?? ""),
         awayTeamId: String(awayComp.id ?? ""),
+        isKnockout,
+        roundName,
+        homePenaltyScore,
+        awayPenaltyScore,
+        homeWinner,
+        awayWinner,
+        homeAdvance,
+        awayAdvance,
       });
     }
 
@@ -651,17 +684,43 @@ export async function GET(request: Request) {
       const officialsList = (summary.gameInfo as any)?.officials as any[];
       const officials = Array.isArray(officialsList) ? officialsList.map((o: any) => String(o.fullName)) : undefined;
 
+      const homeCompetitor = (summary.header as any)?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "home");
+      const awayCompetitor = (summary.header as any)?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "away");
+      const seasonObj = (summary.header as any)?.season;
+      let roundName: string | undefined = undefined;
+      if (seasonObj?.type?.name) {
+        roundName = String(seasonObj.type.name);
+      } else if (seasonObj?.slug) {
+        roundName = String(seasonObj.slug).replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+      }
+      
+      const isKnockout = !!roundName && !roundName.toLowerCase().includes("group");
+      const homePenaltyScore = homeCompetitor?.shootoutScore !== undefined ? parseInt(String(homeCompetitor.shootoutScore), 10) : undefined;
+      const awayPenaltyScore = awayCompetitor?.shootoutScore !== undefined ? parseInt(String(awayCompetitor.shootoutScore), 10) : undefined;
+      const homeWinner = homeCompetitor?.winner;
+      const awayWinner = awayCompetitor?.winner;
+      const homeAdvance = homeCompetitor?.advance;
+      const awayAdvance = awayCompetitor?.advance;
+
       const detailResponse = {
         id: matchId,
         status: mapStatus((summary.header as any)?.competitions?.[0]?.status),
         elapsedDisplay: getElapsed((summary.header as any)?.competitions?.[0]?.status).elapsedDisplay,
-        homeScore: parseInt(String((summary.header as any)?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "home")?.score ?? "0"), 10),
-        awayScore: parseInt(String((summary.header as any)?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "away")?.score ?? "0"), 10),
+        homeScore: parseInt(String(homeCompetitor?.score ?? "0"), 10),
+        awayScore: parseInt(String(awayCompetitor?.score ?? "0"), 10),
         venue,
         officials,
         stats,
         events: mappedEvents,
         lineups,
+        isKnockout,
+        roundName,
+        homePenaltyScore,
+        awayPenaltyScore,
+        homeWinner,
+        awayWinner,
+        homeAdvance,
+        awayAdvance,
       };
 
       return NextResponse.json(detailResponse, {
