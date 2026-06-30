@@ -61,6 +61,14 @@ export interface Match {
   broadcasterRecommendation?: string;
   venue?: string;
   leagueSlug: string;
+  isKnockout?: boolean;
+  roundName?: string;
+  homePenaltyScore?: number;
+  awayPenaltyScore?: number;
+  homeWinner?: boolean;
+  awayWinner?: boolean;
+  homeAdvance?: boolean;
+  awayAdvance?: boolean;
 }
 
 export interface StandingTeam {
@@ -446,14 +454,23 @@ export default function SportsHub({
     return grouped;
   }, [standings]);
 
+  // Combine competitions from standings and knockout matches
+  const competitionsList = useMemo(() => {
+    const compSet = new Set<string>();
+    Object.keys(standingsByCompetition).forEach((c) => compSet.add(c));
+    matches.forEach((m) => {
+      if (m.isKnockout) compSet.add(m.competition);
+    });
+    return Array.from(compSet).sort((a, b) => a.localeCompare(b));
+  }, [standingsByCompetition, matches]);
+
   // Set default standings competition when data arrives
   useEffect(() => {
-    const competitionsList = Object.keys(standingsByCompetition);
     if (competitionsList.length > 0 && !selectedCompetition) {
       const defaultComp = competitionsList.find(c => c.toLowerCase().includes("fifa")) || competitionsList[0];
       setSelectedCompetition(defaultComp);
     }
-  }, [standingsByCompetition, selectedCompetition]);
+  }, [competitionsList, selectedCompetition]);
 
   // Keep selected match details synced with parent polling updates
   useEffect(() => {
@@ -765,16 +782,16 @@ export default function SportsHub({
 
           {/* ── STANDINGS ────────────────────────────────────────────────────── */}
           {activeTab === "standings" && (
-            standings.length === 0 ? (
+            competitionsList.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
                 <Trophy className="w-10 h-10 text-gray-600 shrink-0" />
-                <p className="text-sm font-medium">No standings available</p>
+                <p className="text-sm font-medium">No standings or knockout data available</p>
               </div>
             ) : (
               <>
                 {/* Competition selector */}
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                  {Object.keys(standingsByCompetition).map((compName) => {
+                  {competitionsList.map((compName) => {
                     return (
                       <button
                         key={compName}
@@ -791,8 +808,13 @@ export default function SportsHub({
                   })}
                 </div>
 
-                {/* Standings Grid/Table */}
+                {/* Standings Grid/Table or Knockout Progression */}
                 {selectedCompetition && (() => {
+                  const compKnockoutMatches = matches.filter(m => m.competition === selectedCompetition && m.isKnockout);
+                  if (compKnockoutMatches.length > 0) {
+                    return <KnockoutProgression matches={compKnockoutMatches} />;
+                  }
+
                   const compStandings = standingsByCompetition[selectedCompetition] ?? [];
                   if (compStandings.length === 0) return null;
                   
@@ -904,6 +926,9 @@ function MatchCard({
   const isFT = match.status === "FT";
   const isScheduled = match.status === "SCHEDULED";
 
+  const homeIsWinner = match.homeWinner || match.homeAdvance || (match.homeScore > match.awayScore && !match.awayWinner && !match.awayAdvance);
+  const awayIsWinner = match.awayWinner || match.awayAdvance || (match.awayScore > match.homeScore && !match.homeWinner && !match.homeAdvance);
+
   const homeGoals = match.events.filter((e) => e.type === "goal" && e.team === "home");
   const awayGoals = match.events.filter((e) => e.type === "goal" && e.team === "away");
 
@@ -990,16 +1015,21 @@ function MatchCard({
             <TeamLogo src={match.homeLogo} name={match.homeTeam} size={28} />
             <span
               className={`flex-1 text-sm font-extrabold text-white leading-snug min-w-0
-                ${isFT && match.homeScore < match.awayScore ? "opacity-50" : ""}`}
+                ${isFT && !homeIsWinner && awayIsWinner ? "opacity-50" : ""}`}
             >
               {match.homeTeam}
             </span>
             {!isScheduled && (
-              <ScoreDisplay
-                value={match.homeScore}
-                winning={match.homeScore > match.awayScore}
-                className="text-2xl font-black shrink-0 ml-1"
-              />
+              <div className="flex items-baseline gap-1 shrink-0 ml-1">
+                <ScoreDisplay
+                  value={match.homeScore}
+                  winning={homeIsWinner}
+                  className="text-2xl font-black"
+                />
+                {match.homePenaltyScore !== undefined && (
+                  <span className="text-xs font-bold text-gray-400">({match.homePenaltyScore})</span>
+                )}
+              </div>
             )}
           </div>
           {homeGoals.length > 0 && (
@@ -1036,16 +1066,21 @@ function MatchCard({
             <TeamLogo src={match.awayLogo} name={match.awayTeam} size={28} />
             <span
               className={`flex-1 text-sm font-extrabold text-white leading-snug min-w-0
-                ${isFT && match.awayScore < match.homeScore ? "opacity-50" : ""}`}
+                ${isFT && !awayIsWinner && homeIsWinner ? "opacity-50" : ""}`}
             >
               {match.awayTeam}
             </span>
             {!isScheduled && (
-              <ScoreDisplay
-                value={match.awayScore}
-                winning={match.awayScore > match.homeScore}
-                className="text-2xl font-black shrink-0 ml-1"
-              />
+              <div className="flex items-baseline gap-1 shrink-0 ml-1">
+                <ScoreDisplay
+                  value={match.awayScore}
+                  winning={awayIsWinner}
+                  className="text-2xl font-black"
+                />
+                {match.awayPenaltyScore !== undefined && (
+                  <span className="text-xs font-bold text-gray-400">({match.awayPenaltyScore})</span>
+                )}
+              </div>
             )}
           </div>
           {awayGoals.length > 0 && (
@@ -1063,7 +1098,7 @@ function MatchCard({
             <div className="flex items-center justify-end gap-3 w-full min-w-0">
               <span
                 className={`text-base font-extrabold text-white text-right truncate
-                  ${isFT && match.homeScore < match.awayScore ? "opacity-50" : ""}`}
+                  ${isFT && !homeIsWinner && awayIsWinner ? "opacity-50" : ""}`}
               >
                 {match.homeTeam}
               </span>
@@ -1088,17 +1123,27 @@ function MatchCard({
               </div>
             ) : (
               <div className="flex items-center justify-center gap-3 bg-black/40 px-4 py-2 rounded-xl border border-white/5 shadow-inner">
-                <ScoreDisplay
-                  value={match.homeScore}
-                  winning={match.homeScore > match.awayScore}
-                  className="text-3xl font-black"
-                />
+                <div className="flex items-baseline gap-1">
+                  <ScoreDisplay
+                    value={match.homeScore}
+                    winning={homeIsWinner}
+                    className="text-3xl font-black"
+                  />
+                  {match.homePenaltyScore !== undefined && (
+                    <span className="text-sm font-bold text-gray-400">({match.homePenaltyScore})</span>
+                  )}
+                </div>
                 <span className="text-white/20 font-bold text-lg select-none">:</span>
-                <ScoreDisplay
-                  value={match.awayScore}
-                  winning={match.awayScore > match.homeScore}
-                  className="text-3xl font-black"
-                />
+                <div className="flex items-baseline gap-1">
+                  <ScoreDisplay
+                    value={match.awayScore}
+                    winning={awayIsWinner}
+                    className="text-3xl font-black"
+                  />
+                  {match.awayPenaltyScore !== undefined && (
+                    <span className="text-sm font-bold text-gray-400">({match.awayPenaltyScore})</span>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -1109,7 +1154,7 @@ function MatchCard({
               <TeamLogo src={match.awayLogo} name={match.awayTeam} size={32} />
               <span
                 className={`text-base font-extrabold text-white text-left truncate
-                  ${isFT && match.awayScore < match.homeScore ? "opacity-50" : ""}`}
+                  ${isFT && !awayIsWinner && homeIsWinner ? "opacity-50" : ""}`}
               >
                 {match.awayTeam}
               </span>
@@ -1643,13 +1688,23 @@ function MatchDetailPanel({
                 </div>
               ) : (
                 <>
-                  <span className="text-3xl sm:text-4xl font-black text-white tabular-nums">
-                    {detailData?.homeScore ?? match.homeScore}
-                  </span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl sm:text-4xl font-black text-white tabular-nums">
+                      {detailData?.homeScore ?? match.homeScore}
+                    </span>
+                    {(detailData?.homePenaltyScore ?? match.homePenaltyScore) !== undefined && (
+                      <span className="text-base font-bold text-gray-400">({detailData?.homePenaltyScore ?? match.homePenaltyScore})</span>
+                    )}
+                  </div>
                   <span className="text-xl text-gray-600 font-bold select-none">-</span>
-                  <span className="text-3xl sm:text-4xl font-black text-white tabular-nums">
-                    {detailData?.awayScore ?? match.awayScore}
-                  </span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl sm:text-4xl font-black text-white tabular-nums">
+                      {detailData?.awayScore ?? match.awayScore}
+                    </span>
+                    {(detailData?.awayPenaltyScore ?? match.awayPenaltyScore) !== undefined && (
+                      <span className="text-base font-bold text-gray-400">({detailData?.awayPenaltyScore ?? match.awayPenaltyScore})</span>
+                    )}
+                  </div>
                 </>
               )}
             </div>
@@ -1748,6 +1803,96 @@ function MatchDetailPanel({
         </div>{/* end scrollable body */}
       </motion.div>
       </div>{/* end centering wrapper */}
+    </div>
+  );
+}
+
+// ─── Knockout Progression ──────────────────────────────────────────────────────
+
+function KnockoutProgression({ matches }: { matches: Match[] }) {
+  // Group matches by roundName
+  const rounds = useMemo(() => {
+    const map: Record<string, Match[]> = {};
+    matches.forEach(m => {
+      const r = m.roundName || "Knockout Stage";
+      if (!map[r]) map[r] = [];
+      map[r].push(m);
+    });
+    return map;
+  }, [matches]);
+
+  return (
+    <div className="flex flex-col gap-6 animate-fadeIn mt-2">
+      {Object.entries(rounds).map(([roundName, roundMatches]) => (
+        <div key={roundName} className="glass-card overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2 bg-rose-500/10 border-b border-rose-500/20">
+            <Trophy className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+            <span className="text-[11px] font-black text-rose-400 uppercase tracking-widest">
+              {roundName}
+            </span>
+          </div>
+          <div className="flex flex-col">
+            {roundMatches.map((m, i) => {
+              const isFT = m.status === "FT";
+              const homeIsWinner = m.homeWinner || m.homeAdvance || (m.homeScore > m.awayScore && !m.awayWinner && !m.awayAdvance);
+              const awayIsWinner = m.awayWinner || m.awayAdvance || (m.awayScore > m.homeScore && !m.homeWinner && !m.homeAdvance);
+
+              return (
+                <div key={m.id} className={`flex flex-col md:flex-row md:items-center justify-between p-3 border-b border-white/[0.03] gap-3 md:gap-0 ${i % 2 === 0 ? "bg-white/[0.01]" : ""}`}>
+                  <div className="flex-1 flex items-center justify-between gap-2 sm:gap-4">
+                    {/* Home Team */}
+                    <div className={`flex items-center gap-2 sm:gap-3 flex-1 justify-end min-w-0 ${isFT && !homeIsWinner && awayIsWinner ? "opacity-50" : ""}`}>
+                      <span className="font-bold text-white text-xs sm:text-sm text-right truncate">{m.homeTeam}</span>
+                      <TeamLogo src={m.homeLogo} name={m.homeTeam} size={24} />
+                    </div>
+                    
+                    {/* Score */}
+                    <div className="flex flex-col items-center justify-center shrink-0 w-[80px] sm:w-[100px]">
+                      {m.status === "SCHEDULED" ? (
+                        <div className="flex items-center gap-1 text-[10px] sm:text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                          <Clock className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{formatMatchDate(m.startTime).split("·")[1]?.trim() || "TBD"}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 sm:gap-2 font-black text-white text-base sm:text-lg">
+                          <span className={homeIsWinner ? "text-primary" : ""}>{m.homeScore}</span>
+                          <span className="text-gray-500 text-xs sm:text-sm">-</span>
+                          <span className={awayIsWinner ? "text-primary" : ""}>{m.awayScore}</span>
+                        </div>
+                      )}
+                      {(m.homePenaltyScore !== undefined || m.awayPenaltyScore !== undefined) && (
+                        <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 mt-0.5 whitespace-nowrap">
+                          ({m.homePenaltyScore ?? 0} - {m.awayPenaltyScore ?? 0} p)
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Away Team */}
+                    <div className={`flex items-center gap-2 sm:gap-3 flex-1 justify-start min-w-0 ${isFT && !awayIsWinner && homeIsWinner ? "opacity-50" : ""}`}>
+                      <TeamLogo src={m.awayLogo} name={m.awayTeam} size={24} />
+                      <span className="font-bold text-white text-xs sm:text-sm text-left truncate">{m.awayTeam}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Advanced/Eliminated Status Badge */}
+                  <div className="flex md:flex-col items-center md:items-end justify-center shrink-0 md:w-[120px] md:ml-4">
+                    {isFT && (homeIsWinner || awayIsWinner) ? (
+                      <span className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20 flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        <span className="truncate max-w-[100px]">{homeIsWinner ? m.homeTeam : m.awayTeam}</span>
+                      </span>
+                    ) : isFT ? (
+                      <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-white/5 px-2 py-1 rounded-md border border-white/10">
+                        Draw
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
