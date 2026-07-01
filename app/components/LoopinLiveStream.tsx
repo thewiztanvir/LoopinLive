@@ -1297,41 +1297,39 @@ export default function LoopinLiveStream() {
 
       const format = getStreamFormat(urlToLoad);
 
+      // ── Early DRM / Secure Context check ─────────────────────────────────
+      // Do this before loading Shaka so we can surface a clear error immediately
+      // instead of letting it fail silently mid-load.
+      if (chan.kid?.trim() && chan.key?.trim()) {
+        if (typeof window !== "undefined" && !window.isSecureContext) {
+          setPlayerError(
+            "This channel uses DRM encryption and requires a secure connection (HTTPS or localhost). " +
+            "Please access the app via HTTPS or localhost to watch this stream."
+          );
+          setPlayerStatus("error");
+          return;
+        }
+      }
+
       if (format === "dash") {
         try {
-          // Dynamically import shaka-player compiler
+          // Dynamically import shaka-player
           // @ts-ignore
           const shakaModule = await import("shaka-player/dist/shaka-player.compiled");
-
-          console.log("Shaka module resolution debug:", {
-            moduleKeys: Object.keys(shakaModule || {}),
-            hasDefault: !!shakaModule?.default,
-            defaultKeys: Object.keys(shakaModule?.default || {}),
-          });
-
           const shaka: any = (shakaModule.default && shakaModule.default.Player) ? shakaModule.default : shakaModule;
-
-          console.log("Resolved Shaka object debug:", {
-            hasPolyfill: !!shaka?.polyfill,
-            hasPlayer: !!shaka?.Player,
-            hasUtil: !!shaka?.util,
-          });
 
           // Check if another stream started loading during import
           if (loadedUrlRef.current !== urlToLoad) return;
 
           // Install polyfills
-          if (shaka && shaka.polyfill && typeof shaka.polyfill.installAll === "function") {
+          if (shaka?.polyfill && typeof shaka.polyfill.installAll === "function") {
             shaka.polyfill.installAll();
-          } else {
-            console.warn("Shaka polyfill installer not found.");
           }
 
-          if (shaka && shaka.Player && typeof shaka.Player.isBrowserSupported === "function" && shaka.Player.isBrowserSupported()) {
+          if (shaka?.Player && typeof shaka.Player.isBrowserSupported === "function" && shaka.Player.isBrowserSupported()) {
             const player = new shaka.Player(video);
             shakaPlayerRef.current = player;
 
-            // Configure Shaka player constraints if needed
             player.addEventListener("error", (event: any) => {
               if (event.detail && shaka?.util?.Error?.Severity && event.detail.severity === shaka.util.Error.Severity.CRITICAL) {
                 console.error("Critical Shaka Error:", event.detail);
@@ -1340,16 +1338,8 @@ export default function LoopinLiveStream() {
               }
             });
 
-            // Configure ClearKeys if provided
+            // Configure ClearKeys DRM if provided
             if (chan.kid?.trim() && chan.key?.trim()) {
-              if (typeof window !== "undefined" && !window.isSecureContext) {
-                const drmErr = new Error("DRM decryption requires a Secure Context (HTTPS or localhost). Please watch via localhost or HTTPS.");
-                (drmErr as any).code = 6001;
-                (drmErr as any).category = 6;
-                (drmErr as any).severity = 2;
-                throw drmErr;
-              }
-
               player.configure({
                 drm: {
                   clearKeys: {
@@ -1361,12 +1351,8 @@ export default function LoopinLiveStream() {
 
             await player.load(urlToLoad);
 
-            if (loadedUrlRef.current !== urlToLoad) {
-              // Abort if selection changed before loading completed
-              return;
-            }
+            if (loadedUrlRef.current !== urlToLoad) return;
 
-            // Start playback
             if (!video.paused) {
               setPlayerStatus("playing");
               setIsPaused(false);
@@ -1395,16 +1381,12 @@ export default function LoopinLiveStream() {
                     })
                     .catch((playErr) => {
                       if (loadedUrlRef.current !== urlToLoad) return;
-                      if (playErr.name !== "AbortError") {
-                        console.error("Muted Shaka autoplay failed:", playErr);
-                      }
+                      if (playErr.name !== "AbortError") console.error("Muted Shaka autoplay failed:", playErr);
                       setPlayerStatus("playing");
                       setIsPaused(true);
                     });
                 } else {
-                  if (err.name !== "AbortError") {
-                    console.warn("Shaka play failed:", err);
-                  }
+                  if (err.name !== "AbortError") console.warn("Shaka play failed:", err);
                   setPlayerStatus("playing");
                   setIsPaused(video.paused);
                 }
@@ -1414,37 +1396,30 @@ export default function LoopinLiveStream() {
             setPlayerStatus("error");
           }
         } catch (err: any) {
-          console.error("Failed to initialize Shaka Player. Error object:", err);
-          if (err && err.stack) {
-            console.error("Failed to initialize Shaka Player. Stack trace:", err.stack);
-          }
+          console.error("Shaka Player error:", err);
 
-          let displayError = "Error loading DASH player.";
-          if (err && err.code === 6001) {
-            if (typeof window !== "undefined" && !window.isSecureContext) {
-              displayError = "DASH Playback Error: DRM streams require HTTPS or localhost (Secure Context) for decryption.";
-            } else {
-              displayError = "DASH Playback Error: DRM key system not supported. Please check if DRM/Protected Content is enabled in your browser settings.";
-            }
-          } else if (err && err.code === 1001) {
-            displayError = "DASH Playback Error: The stream server is offline, unreachable, or geoblocked (Network Error 1001).";
-          } else if (err && err.code === 1002) {
-            displayError = "DASH Playback Error: The stream server returned an invalid response (HTTP Error 1002).";
-          } else if (err && err.code === 6007) {
-            displayError = "DASH Playback Error: The stream is encrypted but no DRM information or keys were found (Error 6007).";
-          } else if (err && err.code === 6012) {
-            displayError = "DASH Playback Error: Failed to generate license request (Error 6012). Check your browser DRM settings.";
-          } else if (err && err.message) {
-            displayError = `DASH Playback Error: ${err.message}`;
-          } else if (err && err.code) {
-            displayError = `DASH Playback Error: Code ${err.code} (Category: ${err.category})`;
+          let displayError = "Error loading DASH stream.";
+          if (err?.code === 6001 || (typeof window !== "undefined" && !window.isSecureContext)) {
+            displayError = "This stream requires a secure connection (HTTPS). Please access the app via HTTPS or localhost.";
+          } else if (err?.code === 1001) {
+            displayError = "The stream server is offline, unreachable, or geo-restricted.";
+          } else if (err?.code === 1002) {
+            displayError = "The stream server returned an invalid response. It may be geo-restricted or temporarily down.";
+          } else if (err?.code === 6007) {
+            displayError = "Stream is encrypted but no decryption keys were found. Check the channel's DRM configuration.";
+          } else if (err?.code === 6012) {
+            displayError = "Failed to apply DRM licence. Check your browser's protected content settings.";
+          } else if (err?.message) {
+            displayError = `DASH Error: ${err.message}`;
+          } else if (err?.code) {
+            displayError = `DASH Error: Code ${err.code} (Category: ${err.category})`;
           }
 
           setPlayerError(displayError);
           setPlayerStatus("error");
         }
       } else {
-        // HLS or unknown format (fallback to HLS detection)
+        // HLS or unknown format — try HLS.js first, fall back to native
         const isSafari = isSafariBrowser();
 
         if (Hls.isSupported() && !isSafari) {
@@ -1455,10 +1430,30 @@ export default function LoopinLiveStream() {
             startLevel: -1,
           });
           hlsRef.current = hls;
+
+          // ── HLS Manifest Timeout ──────────────────────────────────────────
+          // If MANIFEST_PARSED never fires within 15 seconds, the stream is
+          // likely offline, geo-blocked, or returning non-HLS content.
+          let manifestReceived = false;
+          const hlsTimeoutId = setTimeout(() => {
+            if (!manifestReceived && loadedUrlRef.current === urlToLoad) {
+              hls.destroy();
+              hlsRef.current = null;
+              setPlayerError(
+                "Stream failed to load within 15 seconds. " +
+                "It may be offline, geo-restricted, or blocked by your network. " +
+                "Try clicking Retry or choose another channel."
+              );
+              setPlayerStatus("error");
+            }
+          }, 15_000);
+
           hls.attachMedia(video);
           hls.loadSource(urlToLoad);
 
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            manifestReceived = true;
+            clearTimeout(hlsTimeoutId);
             if (loadedUrlRef.current !== urlToLoad) return;
             if (!video.paused) {
               setPlayerStatus("playing");
@@ -1488,41 +1483,46 @@ export default function LoopinLiveStream() {
                     })
                     .catch((playErr) => {
                       if (loadedUrlRef.current !== urlToLoad) return;
-                      if (playErr.name !== "AbortError") {
-                        console.error("Muted autoplay failed:", playErr);
-                      }
+                      if (playErr.name !== "AbortError") console.error("Muted autoplay failed:", playErr);
                       setPlayerStatus("playing");
                       setIsPaused(true);
                     });
                 } else {
-                  if (err.name !== "AbortError") {
-                    console.warn("Play failed:", err);
-                  }
+                  if (err.name !== "AbortError") console.warn("Play failed:", err);
                   setPlayerStatus("playing");
                   setIsPaused(video.paused);
                 }
               });
           });
 
+          // Track consecutive network error retries to avoid infinite loops
+          let networkRetries = 0;
           hls.on(Hls.Events.ERROR, (_event: string, data: { fatal: boolean; type: string; details?: string }) => {
             if (loadedUrlRef.current !== urlToLoad) return;
             if (data.fatal) {
+              clearTimeout(hlsTimeoutId);
               switch (data.type) {
                 case Hls.ErrorTypes.NETWORK_ERROR:
-                  console.warn(
-                    "Fatal HLS network error, attempting to recover..."
-                  );
-                  hls.startLoad();
+                  networkRetries++;
+                  if (networkRetries <= 2) {
+                    console.warn(`Fatal HLS network error (attempt ${networkRetries}), retrying...`);
+                    hls.startLoad();
+                  } else {
+                    console.error("HLS network error: too many retries.", data);
+                    setPlayerError(
+                      "Stream is unreachable. It may be offline, geo-blocked, or your network is blocking it. " +
+                      "Try Retry or select a different channel."
+                    );
+                    setPlayerStatus("error");
+                  }
                   break;
                 case Hls.ErrorTypes.MEDIA_ERROR:
-                  console.warn(
-                    "Fatal HLS media error, attempting to recover..."
-                  );
+                  console.warn("Fatal HLS media error, attempting to recover...");
                   hls.recoverMediaError();
                   break;
                 default:
                   console.error("Fatal unrecoverable HLS error:", data);
-                  setPlayerError("Fatal unrecoverable HLS error: " + (data.details || data.type));
+                  setPlayerError("Stream error: " + (data.details || data.type) + ". The stream may be offline or incompatible.");
                   setPlayerStatus("error");
                   break;
               }
@@ -1609,10 +1609,21 @@ export default function LoopinLiveStream() {
   useEffect(() => {
     if (!selectedChannel) return;
 
+    // On retry (retryKey increments), force re-initialization even if the URL
+    // hasn't changed — loadedUrlRef is cleared so initializeStream runs.
     if (loadedUrlRef.current !== selectedChannel.url) {
       initializeStream(selectedChannel, false);
     }
-  }, [selectedChannel, retryKey, initializeStream]);
+  }, [selectedChannel, initializeStream]);
+
+  // Retry: explicitly clear the loaded URL so initializeStream re-runs
+  useEffect(() => {
+    if (retryKey === 0) return;
+    loadedUrlRef.current = null;
+    if (selectedChannel) {
+      initializeStream(selectedChannel, false);
+    }
+  }, [retryKey]); // intentionally only retryKey
 
   // Clean up Hls, Shaka, and video elements on component unmount
   useEffect(() => {
