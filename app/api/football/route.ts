@@ -759,14 +759,15 @@ export async function GET(request: Request) {
       todayResults,
       tomorrowResults,
       dayAfterResults,
+      fifaWorldResults,
     ] = await Promise.all([
-      Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, dayBeforeYesterday))),
-      Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, yesterday))),
+      Promise.all(LEAGUES.filter(l => l.slug !== "fifa.world").map((l) => fetchScoreboardForDate(l, dayBeforeYesterday))),
+      Promise.all(LEAGUES.filter(l => l.slug !== "fifa.world").map((l) => fetchScoreboardForDate(l, yesterday))),
       // Always pass the explicit Dhaka date so ESPN doesn't default to UTC "today"
-      // (without this, Dhaka users between midnight–6am get yesterday's matches)
-      Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, today))),
-      Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, tomorrow))),
-      Promise.all(LEAGUES.map((l) => fetchScoreboardForDate(l, dayAfter))),
+      Promise.all(LEAGUES.filter(l => l.slug !== "fifa.world").map((l) => fetchScoreboardForDate(l, today))),
+      Promise.all(LEAGUES.filter(l => l.slug !== "fifa.world").map((l) => fetchScoreboardForDate(l, tomorrow))),
+      Promise.all(LEAGUES.filter(l => l.slug !== "fifa.world").map((l) => fetchScoreboardForDate(l, dayAfter))),
+      Promise.all(LEAGUES.filter(l => l.slug === "fifa.world").map((l) => fetchScoreboardForDate(l, "2026"))),
     ]);
 
     // Merge and deduplicate by match ID (today takes priority, then outward)
@@ -778,6 +779,7 @@ export async function GET(request: Request) {
       ...dayBeforeYesterdayResults.flat(),
       ...tomorrowResults.flat(),
       ...dayAfterResults.flat(),
+      ...fifaWorldResults.flat(),
     ]) {
       if (!seenMatchIds.has(m.id)) {
         seenMatchIds.add(m.id);
