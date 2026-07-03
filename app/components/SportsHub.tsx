@@ -519,39 +519,34 @@ export default function SportsHub({
     [matches]
   );
 
-  // Grouped Live Matches: max 4 per competition
+  // Grouped Live Matches
   const groupedLiveMatches = useMemo(() => {
     const groups = groupMatchesByCompetition(liveMatches);
-    groups.forEach((g) => {
-      g.matches = g.matches.slice(0, 4);
-    });
     return groups;
   }, [liveMatches]);
 
-  // Grouped Upcoming Matches: sorted ascending by kickoff time, max 4 per competition
+  // Grouped Upcoming Matches: sorted ascending by kickoff time
   const groupedUpcomingMatches = useMemo(() => {
     const groups = groupMatchesByCompetition(upcomingMatches);
     groups.forEach((g) => {
       g.matches.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-      g.matches = g.matches.slice(0, 4);
     });
     return groups;
   }, [upcomingMatches]);
 
-  // Grouped Completed Matches: sorted descending by kickoff time, max 4 per competition
+  // Grouped Completed Matches: sorted descending by kickoff time
   const groupedCompletedMatches = useMemo(() => {
     const groups = groupMatchesByCompetition(completedMatches);
     groups.forEach((g) => {
       g.matches.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-      g.matches = g.matches.slice(0, 4);
     });
     return groups;
   }, [completedMatches]);
 
-  // Overview: 1 per competition, already priority-ordered by the list they come from
-  const overviewLive = useMemo(() => onePerCompetition(liveMatches), [liveMatches]);
-  const overviewUpcoming = useMemo(() => onePerCompetition(upcomingMatches), [upcomingMatches]);
-  const overviewResults = useMemo(() => onePerCompetition(completedMatches), [completedMatches]);
+  // Overview: Show all relevant matches, paginated by MatchSection
+  const overviewLive = useMemo(() => liveMatches, [liveMatches]);
+  const overviewUpcoming = useMemo(() => upcomingMatches, [upcomingMatches]);
+  const overviewResults = useMemo(() => completedMatches, [completedMatches]);
 
   // Selected standings list is computed dynamically in render block
 
@@ -653,49 +648,87 @@ export default function SportsHub({
                   </div>
                 )}
 
-              {/* Live — 1 per competition */}
-              {!loading && overviewLive.length > 0 && (
-                <MatchSection
-                  title="LIVE NOW"
-                  icon={
-                    <span className="relative flex h-2.5 w-2.5 mr-1">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
-                    </span>
-                  }
-                  titleClass="text-rose-400"
-                  matches={overviewLive}
-                  selectedMatch={selectedMatch}
-                  onSelect={setSelectedMatch}
-                  onTuneToChannel={onTuneToChannel}
-                />
-              )}
+              {/* Dashboard Layout */}
+              <div className="flex flex-col gap-6 animate-fadeIn">
+                {/* Tournament Status Banner */}
+                {(!loading && (overviewLive.length > 0 || overviewUpcoming.length > 0 || overviewResults.length > 0)) && (() => {
+                  const currentRound = liveMatches[0]?.roundName || upcomingMatches[0]?.roundName || completedMatches[0]?.roundName || "Group Stage";
+                  return (
+                    <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-500/20 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+                      <div className="flex items-center gap-4 w-full sm:w-auto">
+                        <div className="w-12 h-12 shrink-0 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-400/30">
+                          <Trophy className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <div className="flex flex-col">
+                          <h3 className="text-white font-bold text-lg leading-tight">Tournament Status</h3>
+                          <p className="text-blue-300/80 text-sm font-medium">Phase: <span className="text-white font-bold">{currentRound}</span></p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 sm:gap-8 bg-black/30 p-3 rounded-xl border border-white/5 w-full sm:w-auto justify-center">
+                        <div className="text-center min-w-[60px]">
+                          <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Played</p>
+                          <p className="text-lg font-black text-white">{completedMatches.length}</p>
+                        </div>
+                        <div className="w-[1px] h-8 bg-white/10" />
+                        <div className="text-center min-w-[60px]">
+                          <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Upcoming</p>
+                          <p className="text-lg font-black text-white">{upcomingMatches.length}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
-              {/* Upcoming — 1 per competition */}
-              {!loading && overviewUpcoming.length > 0 && (
-                <MatchSection
-                  title="UPCOMING"
-                  icon={<Clock className="w-3.5 h-3.5 text-blue-400" />}
-                  titleClass="text-blue-400"
-                  matches={overviewUpcoming}
-                  selectedMatch={selectedMatch}
-                  onSelect={setSelectedMatch}
-                  onTuneToChannel={onTuneToChannel}
-                />
-              )}
+                {/* Dashboard Grid */}
+                <div className="flex flex-col gap-6">
+                  {/* Live — Full Width */}
+                  {!loading && overviewLive.length > 0 && (
+                    <MatchSection
+                      title="LIVE NOW"
+                      icon={
+                        <span className="relative flex h-2.5 w-2.5 mr-1">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+                        </span>
+                      }
+                      titleClass="text-rose-400"
+                      matches={overviewLive}
+                      selectedMatch={selectedMatch}
+                      onSelect={setSelectedMatch}
+                      onTuneToChannel={onTuneToChannel}
+                    />
+                  )}
 
-              {/* Recent Results — 1 per competition */}
-              {!loading && overviewResults.length > 0 && (
-                <MatchSection
-                  title="RECENT RESULTS"
-                  icon={<CheckCircle className="w-3.5 h-3.5 text-gray-500" />}
-                  titleClass="text-gray-500"
-                  matches={overviewResults}
-                  selectedMatch={selectedMatch}
-                  onSelect={setSelectedMatch}
-                  onTuneToChannel={onTuneToChannel}
-                />
-              )}
+                  {/* Upcoming & Results — Side by Side on Desktop */}
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    {/* Upcoming */}
+                    {!loading && overviewUpcoming.length > 0 && (
+                      <MatchSection
+                        title="UP NEXT"
+                        icon={<Clock className="w-3.5 h-3.5 text-blue-400" />}
+                        titleClass="text-blue-400"
+                        matches={overviewUpcoming}
+                        selectedMatch={selectedMatch}
+                        onSelect={setSelectedMatch}
+                        onTuneToChannel={onTuneToChannel}
+                      />
+                    )}
+
+                    {/* Recent Results */}
+                    {!loading && overviewResults.length > 0 && (
+                      <MatchSection
+                        title="RECENT RESULTS"
+                        icon={<CheckCircle className="w-3.5 h-3.5 text-gray-500" />}
+                        titleClass="text-gray-500"
+                        matches={overviewResults}
+                        selectedMatch={selectedMatch}
+                        onSelect={setSelectedMatch}
+                        onTuneToChannel={onTuneToChannel}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
             </>
           )}
 
@@ -812,7 +845,7 @@ export default function SportsHub({
                 {selectedCompetition && (() => {
                   const compKnockoutMatches = matches.filter(m => m.competition === selectedCompetition && m.isKnockout);
                   if (compKnockoutMatches.length > 0) {
-                    return <KnockoutProgression matches={compKnockoutMatches} />;
+                    return <VisualBracket matches={compKnockoutMatches} />;
                   }
 
                   const compStandings = standingsByCompetition[selectedCompetition] ?? [];
@@ -875,26 +908,40 @@ function MatchSection({
   onSelect: (m: Match) => void;
   onTuneToChannel?: (name: string) => void;
 }) {
+  const [displayCount, setDisplayCount] = useState(4);
+  const displayMatches = matches.slice(0, displayCount);
+  const hasMore = displayCount < matches.length;
+
   return (
     <div className="flex flex-col gap-2.5">
-      <div className="flex items-center gap-2">
-        {icon}
-        <span
-          className={`text-[11px] font-bold uppercase tracking-widest ${titleClass}`}
-        >
-          {title}
-        </span>
-        <span className="text-[10px] text-gray-600 font-medium">
-          ({matches.length})
-        </span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {icon}
+          <span
+            className={`text-[11px] font-bold uppercase tracking-widest ${titleClass}`}
+          >
+            {title}
+          </span>
+          <span className="text-[10px] text-gray-600 font-medium">
+            ({matches.length})
+          </span>
+        </div>
+        {hasMore && (
+          <button
+            onClick={() => setDisplayCount((prev) => prev + 4)}
+            className="text-[10px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 transition-colors"
+          >
+            Load More ({matches.length - displayCount})
+          </button>
+        )}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {matches.map((match, i) => (
+        {displayMatches.map((match, i) => (
           <motion.div
             key={match.id}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: i * 0.05 }}
+            transition={{ duration: 0.3, delay: (i % 4) * 0.05 }}
           >
             <MatchCard
               match={match}
@@ -905,6 +952,16 @@ function MatchSection({
           </motion.div>
         ))}
       </div>
+      {displayCount > 4 && (
+        <div className="flex justify-center mt-2">
+           <button
+            onClick={() => setDisplayCount(4)}
+            className="text-[10px] font-bold uppercase tracking-wider text-gray-500 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-6 py-2 rounded-full"
+          >
+            Show Less
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1807,97 +1864,286 @@ function MatchDetailPanel({
   );
 }
 
-// ─── Knockout Progression ──────────────────────────────────────────────────────
+// ─── Visual Knockout Bracket ──────────────────────────────────────────────────
 
-function KnockoutProgression({ matches }: { matches: Match[] }) {
-  // Group matches by roundName
-  const rounds = useMemo(() => {
-    const map: Record<string, Match[]> = {};
-    matches.forEach(m => {
-      const r = m.roundName || "Knockout Stage";
-      if (!map[r]) map[r] = [];
-      map[r].push(m);
-    });
-    return map;
-  }, [matches]);
+// A resolved "slot" for a team in a bracket position
+type BracketSlot = {
+  teamName: string;
+  teamLogo: string;
+  confirmed: boolean;
+};
+
+// Rich bracket node with match data + derived slots for winner propagation
+type BracketNode = {
+  match?: Match;
+  roundName: string;
+  topSlot: BracketSlot | null;
+  bottomSlot: BracketSlot | null;
+  children: BracketNode[];
+};
+
+function getMatchWinner(m: Match): { name: string; logo: string } | null {
+  const homeIsWinner = m.homeWinner || m.homeAdvance || (m.homeScore > m.awayScore && !m.awayWinner && !m.awayAdvance);
+  const awayIsWinner = m.awayWinner || m.awayAdvance || (m.awayScore > m.homeScore && !m.homeWinner && !m.homeAdvance);
+  if (m.status === "FT" && homeIsWinner) return { name: m.homeTeam, logo: m.homeLogo };
+  if (m.status === "FT" && awayIsWinner) return { name: m.awayTeam, logo: m.awayLogo };
+  return null;
+}
+
+function deriveAdvancer(child: BracketNode): BracketSlot | null {
+  if (!child.match) return null;
+  const winner = getMatchWinner(child.match);
+  if (winner) return { teamName: winner.name, teamLogo: winner.logo, confirmed: true };
+  return null;
+}
+
+function buildBracketTree(matches: Match[]): BracketNode | null {
+  const sorted = [...matches].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
+  const groups: Record<string, Match[]> = {};
+  sorted.forEach(m => {
+    const r = m.roundName || "Knockout";
+    if (r.toLowerCase().includes("third") || r.toLowerCase().includes("3rd")) return;
+    if (!groups[r]) groups[r] = [];
+    groups[r].push(m);
+  });
+
+  const roundOrder = ["128", "64", "32", "16", "quarter", "semi", "final"];
+  const getRoundScore = (name: string) => {
+    const l = name.toLowerCase();
+    for (let i = 0; i < roundOrder.length; i++) {
+      if (l.includes(roundOrder[i])) return i;
+    }
+    return 99;
+  };
+
+  const rounds = Object.keys(groups).map(k => ({ name: k, matches: groups[k] }));
+  rounds.sort((a, b) => getRoundScore(a.name) - getRoundScore(b.name));
+
+  // Pad out future rounds that don't exist in data yet
+  while (rounds.length > 0 && rounds[rounds.length - 1].matches.length > 1) {
+    const lastLen = rounds[rounds.length - 1].matches.length;
+    const nextLen = Math.ceil(lastLen / 2);
+    rounds.push({ name: "Upcoming", matches: Array.from({ length: nextLen }).map(() => undefined as any) });
+  }
+
+  function buildNode(roundIdx: number, matchIdx: number): BracketNode {
+    const r = rounds[roundIdx];
+    const match: Match | undefined = r ? r.matches[matchIdx] : undefined;
+    const roundName = r ? r.name : "TBD";
+
+    const children: BracketNode[] = [];
+    if (roundIdx > 0) {
+      children.push(buildNode(roundIdx - 1, matchIdx * 2));
+      children.push(buildNode(roundIdx - 1, matchIdx * 2 + 1));
+    }
+
+    // Determine team slots for this node
+    let topSlot: BracketSlot | null = null;
+    let bottomSlot: BracketSlot | null = null;
+
+    if (match) {
+      // Actual match exists - use its teams
+      topSlot = { teamName: match.homeTeam, teamLogo: match.homeLogo, confirmed: true };
+      bottomSlot = { teamName: match.awayTeam, teamLogo: match.awayLogo, confirmed: true };
+    } else if (children.length >= 2) {
+      // No match yet: derive from children's winners
+      topSlot = deriveAdvancer(children[0]);
+      bottomSlot = deriveAdvancer(children[1]);
+    }
+
+    return { match, roundName, topSlot, bottomSlot, children };
+  }
+
+  if (rounds.length === 0) return null;
+  return buildNode(rounds.length - 1, 0);
+}
+
+function BracketNodeView({ node, isTop, isBottom }: { node: BracketNode; isTop?: boolean; isBottom?: boolean }) {
+  const isFT = node.match?.status === "FT";
+  const isLive = node.match?.status === "LIVE";
+  const homeIsWinner = node.match
+    ? node.match.homeWinner || node.match.homeAdvance || (node.match.homeScore > node.match.awayScore && !node.match.awayWinner && !node.match.awayAdvance)
+    : false;
+  const awayIsWinner = node.match
+    ? node.match.awayWinner || node.match.awayAdvance || (node.match.awayScore > node.match.homeScore && !node.match.homeWinner && !node.match.homeAdvance)
+    : false;
+
+  const { topSlot, bottomSlot, match } = node;
+  const noMatch = !match;
+  const hasPenalties = isFT && (match?.homePenaltyScore !== undefined || match?.awayPenaltyScore !== undefined);
+  const topConfirmedOnly = topSlot?.confirmed && !bottomSlot?.confirmed;
+  const bottomConfirmedOnly = !topSlot?.confirmed && bottomSlot?.confirmed;
+  const bothConfirmed = topSlot?.confirmed && bottomSlot?.confirmed;
 
   return (
-    <div className="flex flex-col gap-6 animate-fadeIn mt-2">
-      {Object.entries(rounds).map(([roundName, roundMatches]) => (
-        <div key={roundName} className="glass-card overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 bg-rose-500/10 border-b border-rose-500/20">
-            <Trophy className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-            <span className="text-[11px] font-black text-rose-400 uppercase tracking-widest">
-              {roundName}
-            </span>
-          </div>
-          <div className="flex flex-col">
-            {roundMatches.map((m, i) => {
-              const isFT = m.status === "FT";
-              const homeIsWinner = m.homeWinner || m.homeAdvance || (m.homeScore > m.awayScore && !m.awayWinner && !m.awayAdvance);
-              const awayIsWinner = m.awayWinner || m.awayAdvance || (m.awayScore > m.homeScore && !m.homeWinner && !m.homeAdvance);
-
-              return (
-                <div key={m.id} className={`flex flex-col md:flex-row md:items-center justify-between p-3 border-b border-white/[0.03] gap-3 md:gap-0 ${i % 2 === 0 ? "bg-white/[0.01]" : ""}`}>
-                  <div className="flex-1 flex items-center justify-between gap-2 sm:gap-4">
-                    {/* Home Team */}
-                    <div className={`flex items-center gap-2 sm:gap-3 flex-1 justify-end min-w-0 ${isFT && !homeIsWinner && awayIsWinner ? "opacity-50" : ""}`}>
-                      <span className="font-bold text-white text-xs sm:text-sm text-right truncate">{m.homeTeam}</span>
-                      <TeamLogo src={m.homeLogo} name={m.homeTeam} size={24} />
-                    </div>
-                    
-                    {/* Score */}
-                    <div className="flex flex-col items-center justify-center shrink-0 w-[80px] sm:w-[100px]">
-                      {m.status === "SCHEDULED" ? (
-                        <div className="flex items-center gap-1 text-[10px] sm:text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
-                          <Clock className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{formatMatchDate(m.startTime).split("·")[1]?.trim() || "TBD"}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 sm:gap-2 font-black text-white text-base sm:text-lg">
-                          <span className={homeIsWinner ? "text-primary" : ""}>{m.homeScore}</span>
-                          <span className="text-gray-500 text-xs sm:text-sm">-</span>
-                          <span className={awayIsWinner ? "text-primary" : ""}>{m.awayScore}</span>
-                        </div>
-                      )}
-                      {(m.homePenaltyScore !== undefined || m.awayPenaltyScore !== undefined) && (
-                        <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 mt-0.5 whitespace-nowrap">
-                          ({m.homePenaltyScore ?? 0} - {m.awayPenaltyScore ?? 0} p)
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Away Team */}
-                    <div className={`flex items-center gap-2 sm:gap-3 flex-1 justify-start min-w-0 ${isFT && !awayIsWinner && homeIsWinner ? "opacity-50" : ""}`}>
-                      <TeamLogo src={m.awayLogo} name={m.awayTeam} size={24} />
-                      <span className="font-bold text-white text-xs sm:text-sm text-left truncate">{m.awayTeam}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Advanced/Eliminated Status Badge */}
-                  <div className="flex md:flex-col items-center md:items-end justify-center shrink-0 md:w-[120px] md:ml-4">
-                    {isFT && (homeIsWinner || awayIsWinner) ? (
-                      <span className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20 flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" />
-                        <span className="truncate max-w-[100px]">{homeIsWinner ? m.homeTeam : m.awayTeam}</span>
-                      </span>
-                    ) : isFT ? (
-                      <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-white/5 px-2 py-1 rounded-md border border-white/10">
-                        Draw
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+    <div className="flex items-center">
+      {node.children.length > 0 && (
+        <div className="flex flex-col justify-center">
+          <BracketNodeView node={node.children[0]} isTop={true} />
+          <BracketNodeView node={node.children[1]} isBottom={true} />
         </div>
-      ))}
+      )}
+
+      <div
+        className={`flex items-center relative
+          ${isTop ? "border-b-[3px] border-r-[3px] border-slate-700/70 pb-4 pr-6 rounded-br-3xl" : ""}
+          ${isBottom ? "border-t-[3px] border-r-[3px] border-slate-700/70 pt-4 pr-6 rounded-tr-3xl mt-[-3px]" : ""}
+        `}
+      >
+        {node.children.length > 0 && <div className="w-6 h-[3px] bg-slate-700/70 shrink-0" />}
+
+        <div
+          className={`w-[260px] sm:w-[320px] shrink-0 m-2 flex flex-col rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-primary/10
+            ${isLive
+              ? "bg-gradient-to-br from-rose-950/80 to-black border border-rose-500/50 ring-2 ring-rose-500/30"
+              : noMatch && (topSlot || bottomSlot)
+              ? "bg-gradient-to-br from-blue-950/40 to-black border border-blue-500/30 ring-1 ring-blue-500/10"
+              : noMatch
+              ? "bg-white/[0.03] border border-white/10"
+              : "bg-gradient-to-br from-slate-900 to-black border border-slate-700/50"
+            }
+          `}
+        >
+          {/* ── Card Header ── */}
+          <div className="flex items-center justify-between px-3 py-1.5 bg-white/5 border-b border-white/5 text-[10px] font-bold">
+            <span className="text-gray-500 uppercase tracking-wider truncate">{node.roundName}</span>
+            {match ? (
+              isLive ? (
+                <span className="flex items-center gap-1.5 text-rose-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+                  LIVE · {match.elapsedDisplay}
+                </span>
+              ) : match.status === "FT" ? (
+                <span className="text-gray-500 font-bold">FT</span>
+              ) : (
+                <span className="text-blue-400">{formatMatchDate(match.startTime)}</span>
+              )
+            ) : (
+              <span className="text-gray-600 italic text-[9px]">Awaiting results</span>
+            )}
+          </div>
+
+          {/* ── Top Team Row ── */}
+          <div
+            className={`flex items-center justify-between px-3 py-2.5 border-b border-white/[0.05] min-h-[46px]
+              ${isFT && !homeIsWinner && awayIsWinner ? "opacity-30" : ""}
+              ${isFT && homeIsWinner ? "bg-primary/5" : ""}
+            `}
+          >
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              {topSlot ? (
+                <>
+                  <TeamLogo src={topSlot.teamLogo} name={topSlot.teamName} size={20} />
+                  <span className={`text-sm font-bold truncate
+                    ${homeIsWinner && isFT ? "text-primary" : topSlot.confirmed ? "text-white" : "text-gray-400 italic"}
+                  `}>
+                    {topSlot.teamName}
+                  </span>
+                  {homeIsWinner && isFT && <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />}
+                </>
+              ) : (
+                <span className="text-xs text-gray-600 italic">TBD</span>
+              )}
+            </div>
+            <div className="flex items-baseline gap-1 shrink-0 ml-2">
+              {match && match.status !== "SCHEDULED" ? (
+                <>
+                  <span className={`text-base font-black tabular-nums ${homeIsWinner ? "text-primary" : "text-white"}`}>
+                    {match.homeScore}
+                  </span>
+                  {match.homePenaltyScore !== undefined && (
+                    <span className="text-[10px] font-bold text-gray-400">({match.homePenaltyScore})</span>
+                  )}
+                </>
+              ) : match ? (
+                <span className="text-sm text-gray-600 font-black">—</span>
+              ) : null}
+            </div>
+          </div>
+
+          {/* ── Bottom Team Row ── */}
+          <div
+            className={`flex items-center justify-between px-3 py-2.5 min-h-[46px]
+              ${isFT && !awayIsWinner && homeIsWinner ? "opacity-30" : ""}
+              ${isFT && awayIsWinner ? "bg-primary/5" : ""}
+            `}
+          >
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              {bottomSlot ? (
+                <>
+                  <TeamLogo src={bottomSlot.teamLogo} name={bottomSlot.teamName} size={20} />
+                  <span className={`text-sm font-bold truncate
+                    ${awayIsWinner && isFT ? "text-primary" : bottomSlot.confirmed ? "text-white" : "text-gray-400 italic"}
+                  `}>
+                    {bottomSlot.teamName}
+                  </span>
+                  {awayIsWinner && isFT && <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />}
+                </>
+              ) : (
+                <span className="text-xs text-gray-600 italic">TBD</span>
+              )}
+            </div>
+            <div className="flex items-baseline gap-1 shrink-0 ml-2">
+              {match && match.status !== "SCHEDULED" ? (
+                <>
+                  <span className={`text-base font-black tabular-nums ${awayIsWinner ? "text-primary" : "text-white"}`}>
+                    {match.awayScore}
+                  </span>
+                  {match.awayPenaltyScore !== undefined && (
+                    <span className="text-[10px] font-bold text-gray-400">({match.awayPenaltyScore})</span>
+                  )}
+                </>
+              ) : match ? (
+                <span className="text-sm text-gray-600 font-black">—</span>
+              ) : null}
+            </div>
+          </div>
+
+          {/* ── Penalty Decided Footer ── */}
+          {hasPenalties && (
+            <div className="px-3 py-1 text-center text-[10px] font-bold text-amber-400 bg-amber-500/5 border-t border-amber-500/10 tracking-wide">
+              Decided on Penalties
+            </div>
+          )}
+
+          {/* ── "Awaiting Opponent" Banner for Future Matchups ── */}
+          {noMatch && (topSlot || bottomSlot) && (
+            <div className="px-3 py-1.5 border-t border-blue-500/10 bg-blue-500/5 text-[10px] font-bold text-blue-400 text-center tracking-wide">
+              {topConfirmedOnly
+                ? `${topSlot!.teamName} awaits opponent`
+                : bottomConfirmedOnly
+                ? `${bottomSlot!.teamName} awaits opponent`
+                : bothConfirmed
+                ? "Match to be scheduled"
+                : "Awaiting results"}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
+function VisualBracket({ matches }: { matches: Match[] }) {
+  const rootNode = useMemo(() => buildBracketTree(matches), [matches]);
+
+  if (!rootNode) return null;
+
+  return (
+    <div className="w-full overflow-x-auto custom-scrollbar pb-6 mt-4 animate-fadeIn">
+      <div className="inline-block min-w-max">
+        <div className="flex items-center justify-end bg-black/40 p-4 sm:p-8 rounded-3xl border border-white/5 shadow-inner backdrop-blur-md">
+          <BracketNodeView node={rootNode} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 // ─── Standings Table ─────────────────────────────────────────────────────────
+
 
 function StandingsTable({
   standings,
