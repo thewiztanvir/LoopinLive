@@ -1,129 +1,32 @@
 [
-    {
-        "name": "TNT Sports FHD",
-        "logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTI2NSvkyk8Fx2UMBXFdEXS36TNepD6Uy8pMQveJnYRbDnXedcg2tttKHz3&s=10",
-        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/65ldy4ejuu/out/v1/69bc6b64f1c14e36bb21e0075a71d8ca/cenc.mpd",
-        "type": "dash",
+ {
+        "name": "HD SERVER",
+        "logo": "",
+        "url": "https://instreams.pro/US/MLB13/tracks-v1a1/mono.m3u8?",
         "group": "FIFA",
-        "kid": "570c19f1be3410e4e409be4dc7923f2b",
-        "key": "9a4dea8af2a2a703dffa8a477e9edc50"
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
     },
     {
-        "name": "TNT SPORTS HD",
-        "logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTI2NSvkyk8Fx2UMBXFdEXS36TNepD6Uy8pMQveJnYRbDnXedcg2tttKHz3&s=10",
-        "url": "https://xstm.250909.cc/live/SPORTSFLUX-PRD-76753-1/4a7a4af09781/1033.m3u8",
-        "group": "FIFA"
-    },
-    {
-        "name": "WILLOW HD",
-        "logo": "https://s21.q4cdn.com/819998841/files/doc_news/2024/May/Willow-logo-transparent-cb.png",
-        "url": "https://tmaxapp.site/willoweng.m3u8",
-        "group": "FIFA"
-    },
-    {
-        "name": "SonyLiv - ENG",
+        "name": "HD SERVER",
         "logo": "",
-        "url": "https://sonymtmnew-akamaized.pages.dev/hls/live/2105080/cricodi2606/ENG/master.m3u8",
+        "url": "https://instreams.pro/US/MLB12/tracks-v1a1/mono.m3u8?",
         "group": "FIFA",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0",
-        "referer": "https://www.sonyliv.com/",
-        "origin": "https://www.sonyliv.com",
-        "x-playback-session-id": "80da10c806e4622d7b59afb32d4ef546-1782474600122"
-    },
-    {
-        "name": "SonyLiv - HIN",
-        "logo": "",
-        "url": "https://sonymtmnew-akamaized.pages.dev/hls/live/2105079/cricodi2606/HIN/master.m3u8",
-        "group": "FIFA",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0",
-        "referer": "https://www.sonyliv.com/",
-        "origin": "https://www.sonyliv.com",
-        "x-playback-session-id": "80da10c806e4622d7b59afb32d4ef546-1782474600122"
-    },
-    {
-        "name": "SonyLiv - TAM",
-        "logo": "",
-        "url": "https://sonymtmnew-akamaized.pages.dev/hls/live/2018457/cricodi2606/TAM/master.m3u8",
-        "group": "FIFA",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0",
-        "referer": "https://www.sonyliv.com/",
-        "origin": "https://www.sonyliv.com",
-        "x-playback-session-id": "80da10c806e4622d7b59afb32d4ef546-1782474600122"
-    },
-    {
-        "name": "SonyLiv - TEL",
-        "logo": "",
-        "url": "https://sonymtmnew-akamaized.pages.dev/hls/live/2037142/cricodi2606/TEL/master.m3u8",
-        "group": "FIFA",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0",
-        "referer": "https://www.sonyliv.com/",
-        "origin": "https://www.sonyliv.com",
-        "x-playback-session-id": "80da10c806e4622d7b59afb32d4ef546-1782474600122"
-    },
-    {
-        "name": "SonyLiv - KAN",
-        "logo": "",
-        "url": "https://sonymtmnew-akamaized.pages.dev/hls/live/2037143/cricodi2606/KAN/master.m3u8",
-        "group": "FIFA",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0",
-        "referer": "https://www.sonyliv.com/",
-        "origin": "https://www.sonyliv.com",
-        "x-playback-session-id": "80da10c806e4622d7b59afb32d4ef546-1782474600122"
-    },
-    {
-        "name": "PPV ENGLISH",
-        "logo": "",
-        "url": "https://nhjjhhjhjjhfjj.pages.dev/1782622718/bd33e1770327416cb57e496a8e5b63b0/SEHvgvDrIH44hokqwLdEDbht2cB9WxIHQxDuMB7q_M0/dazn-ppv.m3u8",
-        "group": "FIFA"
-    },
-    {
-        "name": "PPV SPANISH",
-        "logo": "",
-        "url": "https://nhjjhhjhjjhfjj.pages.dev/1782622727/a2ba23479e664185acd274a982ad7bff/g8kaBWt4Iw79i6xk4qqBTg0Yq9xhyX5tApQ-hqQxBU0/dazn-ppv-2.m3u8",
-        "group": "FIFA"
-    },
-    {
-        "name": "SportzX Live",
-        "logo": "",
-        "url": "https://edgestreams.pro/hls/ztyarueaghj71.m3u8?",
-        "group": "FIFA",
-        "referer": "https://streamscenter.online/",
-        "origin": "https://streamscenter.online"
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
     },
     {
         "name": "FOX ONE - AQ",
         "logo": "https://images.seeklogo.com/logo-png/28/1/fox-sports-logo-png_seeklogo-284763.png",
-        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/enc/hgpxfatexm/out/v1/b78800b9b2304879b15843f455836829/cenc.mpd",
+        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/enc/ajfoeddkbz/out/v1/b78800b9b2304879b15843f455836829/cenc.mpd",
         "type": "dash",
         "group": "FIFA",
         "kid": "f6564ec2aee819046328a0e153be574d",
         "key": "ff46a8a1031eb27ef22576a077c98ab7",
+        "useProxy": true,
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
-    },
-    {
-        "name": "CTV SPORTS FHD",
-        "logo": "https://r2.thesportsdb.com/images/media/channel/logo/wwr35d1665918725.png",
-        "url": "https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/sh9xmjbhhr/out/v1/6b4982b95f7843659ead6393341dd532/cenc.mpd",
-        "type": "dash",
-        "group": "FIFA",
-        "kid": "ac59787c884c9b19e3a6219c974c2fd2",
-        "key": "443fd36e2a294f3ce69fdb7488fdd65a"
-    },
-    {
-        "name": "ISCREEN BD FHD",
-        "logo": "https://play-lh.googleusercontent.com/SPbTC9tI82cpBSS4Nsv6pd-mvQd1lnJU2omTqs-sv4DvIdHVRxvZ9OboJTV5Gy1erWo6H569kZ74ZBg6v6sz=w600-h300-pc0xffffff-pd",
-        "url": "https://pastebin.com/raw/AFnPnGzQ?e=.m3u8",
-        "group": "FIFA",
-        "referer": "https://iscreen.com.bd/"
-    },
-    {
-        "name": "TIPIK FR FHD",
-        "logo": "https://upload.wikimedia.org/wikipedia/fr/b/bb/Logo_Tipik_2025.png",
-        "url": "https://c9851ec-rbm-hilv-fsly.cdn.redbee.live/L26/6b640fa2/a765d074.isml/dash/.mpd",
-        "type": "dash",
-        "group": "FIFA",
-        "kid": "adca25b8779e4168a0cd710f59f61ccf",
-        "key": "be5383ed3cd8079f4ffe78ad067f476a"
     },
     {
         "name": "TSN SPORTS FHD",
@@ -133,16 +36,37 @@
         "group": "FIFA",
         "kid": "14eeabf30c14b7fbf3008c03099ce011",
         "key": "17d2ac8dbc5429bd70af3433aa12158d",
+        "useProxy": true,
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
     },
     {
-        "name": "FOX SPORTS 4K",
-        "logo": "https://images.seeklogo.com/logo-png/28/1/fox-sports-logo-png_seeklogo-284763.png",
-        "url": "https://otte.cache.aiv-cdn.net/lhr-nitro/live/clients/dash/enc/m5hvr8vyu9/out/v1/31d30c91fc65458789b84209d3fa22e4/cenc.mpd",
+        "name": "TIPIK FR FHD",
+        "logo": "https://upload.wikimedia.org/wikipedia/fr/b/bb/Logo_Tipik_2025.png",
+        "url": "https://c9851ec-rbm-hilv-fsly.cdn.redbee.live/L26/6b640fa2/a765d074.isml/dash/.mpd",
         "type": "dash",
         "group": "FIFA",
-        "kid": "1f68713028d439ec03be07f56c1d6213",
-        "key": "20093db6455160fffed4c394def3193d"
+        "kid": "adca25b8779e4168a0cd710f59f61ccf",
+        "key": "be5383ed3cd8079f4ffe78ad067f476a",
+        "useProxy": true
+    },
+    {
+        "name": "Binge BDIX (BD)",
+        "logo": "",
+        "url": "https://tc-sg.rockstreamer.com/v1/019ed91616121ea540a8171c8e801f/019ed92ac80315fc600b1796d4ad8b/main.m3u8",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://iscreen.com.bd/"
+    },
+    {
+        "name": "TSN4 SPORTS FHD",
+        "logo": "https://cdn.livesoccertv.com/images/channels/thumbnails/itv-1.png",
+        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/ihys8nw4wv/out/v1/fde190f369484bc6b6117cc16cd82a9f/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "abc5b2883121012850ebda05b528c5ec",
+        "key": "e5250924f4b738905f7163a0134587a7",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
     },
     {
         "name": "WC TV FHD",
@@ -151,17 +75,656 @@
         "type": "dash",
         "group": "FIFA",
         "kid": "2c338a117d434ce4bbe3569231af90f1",
-        "key": "a9633d901ee8a3f4f58ac314b5c5f4fb"
+        "key": "a9633d901ee8a3f4f58ac314b5c5f4fb",
+        "useProxy": true
+    },
+    {
+        "name": "RTE SPORTS FHD",
+        "logo": "",
+        "url": "https://dai.google.com/linear/dash/pa/event/oPeAYQs9T9yTHS98aR1EjQ/stream/66bcdbbf-5a90-41d5-b332-91c48db07257:BRU/manifest.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "d816287e21496989eae1312925a423c5",
+        "key": "00da00f13180e7e6cd5ce87d1c974e8d",
+        "useProxy": true
     },
     {
         "name": "DSports FHD",
-        "logo": "",
+        "logo": "https://www.directvsports.com/__export/1674066777645/sites/dsports/arte/apps/facebook_1200x630.png",
         "url": "https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/z5oyxzsxdk/out/v1/7695a0f64a0e424b973d5b09a2a3eb91/cenc.mpd",
         "type": "dash",
         "group": "FIFA",
         "kid": "f836853d8eac19446ed9535f5fc568b1",
         "key": "b3bc5ef00602b29abac7e482d3d9fbf3",
+        "useProxy": true,
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+    },
+    {
+        "name": "CAZE TV FHD",
+        "logo": "https://duckduckgo.com/i/dab0d6887915781c.png",
+        "url": "https://otte.cache.aiv-cdn.net/lhr-nitro/live/clients/dash/enc/3ynrpdanq2/out/v1/81fd4c26584044d2b1a1cc5b32fa9af0/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "34475edab991ad5e92548aebd710410a",
+        "key": "501b209cccd323ac00bf5ac15b406cb4",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+    },
+    {
+        "name": "SporTV BR FHD",
+        "logo": "https://iili.io/CFFRvqJ.png",
+        "url": "https://otte.cache.aiv-cdn.net/gru-nitro/live/clients/dash/enc/w8kwdfmlgs/out/v1/3aa321e477504937a439b602e078eb18/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "51c0ef23b17297e5c01cd7f36dd0a6ce",
+        "key": "8823f713ba6fdb9bbe0a2ad82d309a4b",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+    },
+    {
+        "name": "FOX ONE 4K",
+        "logo": "",
+        "url": "https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/enc/xyqyiuevpp/out/v1/fc40f22f10374517a2784e1d97cb23f4/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "1f68713028d439ec03be07f56c1d6213",
+        "key": "20093db6455160fffed4c394def3193d",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+    },
+    {
+        "name": "GOLTV VIVO",
+        "logo": "https://www.bellmedia.ca/lede/wp-content/uploads/2024/09/18581592_10155403529061055_8240563011649656197_n.jpg",
+        "url": "https://dmbgaz4xf6jyh.cloudfront.net/live-stream-dai/69690cfcce0dc031830e7c1a/123a264b71764485bd49eca2d552cf33/d97743de3620a865848fff7a9de14dda1bf2409d/manifest.mpd?aid=688aae6d61c87d6274c05065&dnt=true&access_token=63ey9SOpQeHBRfWJYQLXQjelQc0QM1HXmlHp4iZrH8UCOCM8QtGIGg1sEEPJH0R0yXktUEXdLeB&uid=Knx65GY6UbaWSADZybEvf6m5MvqNIuNs&sid=bwRy9BgSc4RFeVhYh52hVIY8uPsJ4v4d&pid=A0xT1VnepBvKKqyeyRNtNkZBmHBrNNZM&ref=ditu.caracoltv.com&ext_pb=0&es=dmbgaz4xf6jyh.cloudfront.net&proto=https&pz=us&xr=us-east-2&manifestfilter=video_height:480-1080",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "1c6bfd8d1cdd4df69ea5fc4dd2f025bb",
+        "key": "b6fd90027dac7a94a9461f8b2638cbb4",
+        "useProxy": true
+    },
+    {
+        "name": "TELEMUNDO HD",
+        "logo": "https://duckduckgo.com/i/2e3815a5b7ddd3c9.png",
+        "url": "https://inproviszon.st/telemundo-usa.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "FOX ONE HD",
+        "logo": "",
+        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/zpfs5hlgya/out/v1/84b1d591a23640178a8e8aa43c6e59a7/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "0cc2f872759c96de70237e6fa6de03d0",
+        "key": "a879b1d38ed002d4018bce96f9219b8d",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+    },
+    {
+        "name": "M6 FRANCE (USA)",
+        "logo": "",
+        "url": "https://edge-fastly-m6web.live.6cloud.fr/out/v1/6play/6play-m6/cmaf_cenc00/dash-short-hd.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "0182ed7af02734ecb17a2f55eec98f99",
+        "key": "60346785b1095596de621031e9daf3ec",
+        "useProxy": true
+    },
+    {
+        "name": "TSN SPORTS HD",
+        "logo": "https://www.bellmedia.ca/lede/wp-content/uploads/2024/09/18581592_10155403529061055_8240563011649656197_n.jpg",
+        "url": "https://inproviszon.st/tsn1-xyz-waUvqaAACr.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "FOX SPORTS HD",
+        "logo": "https://images.seeklogo.com/logo-png/28/1/fox-sports-logo-png_seeklogo-284763.png",
+        "url": "https://inproviszon.st/fox-usa.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "beIN MAX FHD",
+        "logo": "",
+        "url": "https://inproviszon.st/beinsportsmax-sa.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "TELEMUNDO HD",
+        "logo": "https://duckduckgo.com/i/2e3815a5b7ddd3c9.png",
+        "url": "https://instreams.pro/US/NFLHD2/tracks-v1a1/mono.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "UNITE8 HINDI HD",
+        "logo": "",
+        "url": "http://fastshare1.com/live/112233/445566/741567.ts",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "TSN SPORTS 4K",
+        "logo": "https://www.bellmedia.ca/lede/wp-content/uploads/2024/09/18581592_10155403529061055_8240563011649656197_n.jpg",
+        "url": "https://inproviszon.st/tsn4k-xyz-waUvqaAACr.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "FOX ONE 4K",
+        "logo": "",
+        "url": "https://inproviszon.st/fox4k-usa.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "BBC SPORTS 4K",
+        "logo": "https://duckduckgo.com/i/2e3815a5b7ddd3c9.png",
+        "url": "https://inproviszon.st/bbc-4k-2.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "beIN MAX 4K",
+        "logo": "",
+        "url": "https://inproviszon.st/bein4k-xyz-waUvqaAACr.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "TELEMUNDO FHD",
+        "logo": "https://duckduckgo.com/i/2e3815a5b7ddd3c9.png",
+        "url": "https://inproviszon.st/telemundo-xyz-waUvqaAACr.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "DAZN MUNDIAL",
+        "logo": "",
+        "url": "https://inproviszon.st/daznmundial-es.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "FUSSBALL TV 4K",
+        "logo": "",
+        "url": "https://inproviszon.st/fussballtv1uhd-de.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "ARABIC LIVE FHD",
+        "logo": "",
+        "url": "https://inproviszon.st/bein-xyz-waUvqaAACr.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "IRIB 4K",
+        "logo": "",
+        "url": "https://ncdn.telewebion.ir/faratar/live/playlist.m3u8",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "SportzX Live",
+        "logo": "",
+        "url": "https://instreams.pro/US/NFLHD1/tracks-v1a1/mono.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "HD SERVER AR",
+        "logo": "",
+        "url": "https://mainstreams.pro/hls/eJmauBDCIf.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://streamscenter.online/",
+        "origin": "https://streamscenter.online"
+    },
+    {
+        "name": "SD SERVER [ENG]",
+        "logo": "",
+        "url": "http://193.47.62.47/hls/dTHXCZzsss.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "http://www.fawanews.sc/",
+        "origin": "http://www.fawanews.sc/"
+    },
+    {
+        "name": "ENG SERVER SD",
+        "logo": "",
+        "url": "http://193.47.62.42/hls/dTHXCZzsssQ.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "http://www.fawanews.sc/",
+        "origin": "http://www.fawanews.sc/"
+    },
+    {
+        "name": "SD SERVER AR",
+        "logo": "",
+        "url": "http://193.47.62.51/hls/dTHXCZckkkqr.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "http://www.fawanews.sc/",
+        "origin": "http://www.fawanews.sc/"
+    },
+    {
+        "name": "beiN SPORTS FR",
+        "logo": "https://play-lh.googleusercontent.com/jBDZq3aBmCXuvtuJHEasqsdYPRxMBGzYmEha4dMlgoIk19Zlh6BGQC08Zt6Ifrmzhg",
+        "url": "http://193.47.62.59/hls/dTHXCZckkkq.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "http://www.fawanews.sc/",
+        "origin": "http://www.fawanews.sc/"
+    },
+    {
+        "name": "ESPANOL SD",
+        "logo": "",
+        "url": "http://193.47.62.59/hls/dTHXCZckkkqqq.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "http://www.fawanews.sc/",
+        "origin": "http://www.fawanews.sc/"
+    },
+    {
+        "name": "HD SERVER",
+        "logo": "",
+        "url": "https://instreams.pro/US/MLB10/tracks-v1a1/mono.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "SportzX Live",
+        "logo": "",
+        "url": "https://mainstreams.pro/hls/jkzahzadach20.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://streamscenter.online/",
+        "origin": "https://streamscenter.online"
+    },
+    {
+        "name": "HD SERVER",
+        "logo": "",
+        "url": "https://instreams.pro/US/MLB6/tracks-v1a1/mono.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "FANCODE FHD",
+        "logo": "https://m.media-amazon.com/images/I/21K+HipHr6L.png",
+        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/fdb3pubmek/out/v1/aefca6420f944a9482e117f315de535f/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "7e9239c1982d984a002df3ed049d0756",
+        "key": "1b8a17598129a3618535c8fb05f103fe",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+    },
+    {
+        "name": "SportzX Live",
+        "logo": "",
+        "url": "https://hugh.cdn.rumble.cloud/live/qt9k24wa/slot-45/9rr2-ntiy/chunklist.m3u8",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "APPLE TV FHD",
+        "logo": "",
+        "url": "https://whioefwhi.sense-scramble-bay.xyz/out/v2/6a181ba834a92654cb39b87270db8153/index.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://pushembdz.store/"
+    },
+    {
+        "name": "FOX SPORTS FHD",
+        "logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTVqp1Plsy44x_6pIyvUttdbXc5LMugRMGfldjYKQbI9X_X7txzS2d7WPph",
+        "url": "https://whioefwhi.sense-scramble-bay.xyz/out/v2/df43a9bbef8081d59a6454cb54811b35/index.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://pushembdz.store/"
+    },
+    {
+        "name": "SKY F1 UHD",
+        "logo": "",
+        "url": "https://inproviszon.st/sky-sports-f1-uhd.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "SKY F1 FHD",
+        "logo": "",
+        "url": "https://inproviszon.st/sky-sports-f1.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "DAZN ESPANOL",
+        "logo": "",
+        "url": "https://whioefwhi.sense-scramble-bay.xyz/out/v2/d969a98e9d8b3953b2510f7dedabedf2/index.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://pushembdz.store/"
+    },
+    {
+        "name": "SKY ITALY FHD",
+        "logo": "",
+        "url": "https://whioefwhi.sense-scramble-bay.xyz/out/v2/448ce762361de1738f44fa2f44d887a2/index.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://pushembdz.store/"
+    },
+    {
+        "name": "LOW RES",
+        "logo": "",
+        "url": "https://whioefwhi.sense-scramble-bay.xyz/out/v2/4839b7fb4a693edb7f595e681bccf101/tracks-v0a0/mono.ts.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://pushembdz.store/"
+    },
+    {
+        "name": "ELEVEN SPORTS",
+        "logo": "",
+        "url": "https://r.e.blueonline.tv/l/tvsmart/live/eds/Eleven_Sport_1/DHD/Manifest.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "69021095220f3c0eae9bc24215fd692b",
+        "key": "eb58cfe0458ed0b48f7351fa3393ad59",
+        "useProxy": true
+    },
+    {
+        "name": "Sky F1 DE",
+        "logo": "",
+        "url": "https://instreams.pro/bil2/skyf1de/tracks-v1a1/mono.m3u8",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "SportzX LIVE",
+        "logo": "",
+        "url": "https://mainstreams.pro/hls/jnzkdzjfanch23.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://streamscenter.online/",
+        "origin": "https://streamscenter.online"
+    },
+    {
+        "name": "HD SERVER",
+        "logo": "",
+        "url": "https://instreams.pro/US/MLB9/tracks-v1a1/mono.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "SportzX Live",
+        "logo": "",
+        "url": "https://mainstreams.pro/hls/ojzkajnach21.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://streamscenter.online/",
+        "origin": "https://streamscenter.online"
+    },
+    {
+        "name": "HD SERVER",
+        "logo": "",
+        "url": "https://instreams.pro/US/MLB7/tracks-v1a1/mono.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "HD SERVER",
+        "logo": "",
+        "url": "https://instreams.pro/US/MLB11/tracks-v1a1/mono.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "SportzX Live",
+        "logo": "",
+        "url": "https://mainstreams.pro/hls/ijfnakfidch22.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://streamscenter.online/",
+        "origin": "https://streamscenter.online"
+    },
+    {
+        "name": "HD SERVER",
+        "logo": "",
+        "url": "https://instreams.pro/US/MLB8/tracks-v1a1/mono.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "NOW TV 4K",
+        "logo": "",
+        "url": "http://starhub.pro/live/farhat-3379/67897-913379/745270.ts",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "FOX 4k",
+        "logo": "https://images.seeklogo.com/logo-png/28/1/fox-sports-logo-png_seeklogo-284763.png",
+        "url": "https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/enc/ypwo5fhwov/out/v1/31d30c91fc65458789b84209d3fa22e4/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "1f68713028d439ec03be07f56c1d6213",
+        "key": "20093db6455160fffed4c394def3193d",
+        "useProxy": true
+    },
+    {
+        "name": "CT SPORTS CZ",
+        "logo": "",
+        "url": "https://dash2.antik.sk/stream/nvidia_ct_sport/playlist_cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "11223344556677889900112233445566",
+        "key": "4b80724d0ef86bcb2c21f7999d67739d",
+        "useProxy": true
+    },
+    {
+        "name": "SportzX Live",
+        "logo": "",
+        "url": "https://instreams.pro/EU/HDWC1/tracks-v1a1/mono.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "Bein Sports 2 Arabic",
+        "logo": "https://play-lh.googleusercontent.com/jBDZq3aBmCXuvtuJHEasqsdYPRxMBGzYmEha4dMlgoIk19Zlh6BGQC08Zt6Ifrmzhg",
+        "url": "https://1nyaler.streamhostingcdn.top/stream/21/index.m3u8",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "SportzX Live",
+        "logo": "",
+        "url": "https://instreams.pro/EU/HDWC3/tracks-v1a1/mono.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "Bein Sports 1",
+        "logo": "https://i.ibb.co.com/S7tZS6cg/Bein-Sports-1-Direct.png",
+        "group": "FIFA",
+        "url": "https://1nyaler.streamhostingcdn.top/stream/23/index.m3u8",
+        "useProxy": false
+    },
+    {
+        "name": "ARABIC LIVE",
+        "logo": "https://images.fotmob.com/image_resources/logo/teamlogo/8570.png",
+        "url": "https://live-aburayhan1111.telewebion.ir/ek/sport1/live/720p/index.m3u8",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "Match! Football 1",
+        "logo": "https://images.fotmob.com/image_resources/logo/teamlogo/6719.png",
+        "url": "https://bl.video.matchtv.ru/media/playlist/free_d46d0cf1712c0542ec7fd4f0808f600a_hd/17_89756005/1080/e6bef86de8a133cd7b27deb040758a00/4796141934.m3u8",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "SportzX Live",
+        "logo": "https://www.bellmedia.ca/lede/wp-content/uploads/2024/09/18581592_10155403529061055_8240563011649656197_n.jpg",
+        "url": "https://instreams.pro/EU/HDWC1/tracks-v1a1/mono.m3u8",
+        "group": "FIFA",
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click",
+        "useProxy": true
+    },
+    {
+        "name": "HD SERVER ENG",
+        "logo": "",
+        "url": "https://mainstreams.pro/hls/b0h5fNwDKH.m3u8?",
+        "group": "FIFA",
+        "referer": "https://streamscenter.online/",
+        "origin": "https://streamscenter.online",
+        "useProxy": true
+    },
+    {
+        "name": "HD SERVER",
+        "logo": "",
+        "url": "https://instreams.pro/US/MLB1/tracks-v1a1/mono.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "TELEMUNDO HD",
+        "logo": "",
+        "url": "https://instreams.pro/EU/HDWC2/tracks-v1a1/mono.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "FANCODE - SD",
+        "logo": "https://m.media-amazon.com/images/I/21K+HipHr6L.png",
+        "url": "https://abfjk4haaaaaaaampv6ofhkihi4r6.bia-cf.live.pv-cdn.net/iad-nitro/live/clients/dash-sd/enc/qddnwqthpp/out/v1/6c25cddab58043a6ace0ac64d97983f0/cenc-sd.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "709c812e1b4174002605df1d17d34a4c",
+        "key": "0bbee6c9c20a0f065bf8369d54cbf83e",
+        "useProxy": true
+    },
+    {
+        "name": "SP0TV HD",
+        "logo": "",
+        "url": "https://qp-pldt-live-bpk-01-prod.akamaized.net/bpk-tv/cg_spotvhd/default/index.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "useProxy": true
+    },
+    {
+        "name": "EUROSPORT FHD",
+        "logo": "",
+        "url": "https://dash2.antik.sk/stream/nvidia_eurosport1/playlist_cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "useProxy": true
+    },
+    {
+        "name": "EUROSPORT2 FHD",
+        "logo": "",
+        "url": "https://dash2.antik.sk/stream/nvidia_eurosport2/playlist_cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "useProxy": true
+    },
+    {
+        "name": "HD SERVER EN",
+        "logo": "",
+        "url": "https://mainstreams.pro/hls/24SDAZFcsqnj24.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://streamscenter.online/",
+        "origin": "https://streamscenter.online"
+    },
+    {
+        "name": "TSN2 SPORTS FHD",
+        "logo": "https://www.bellmedia.ca/lede/wp-content/uploads/2024/09/18581592_10155403529061055_8240563011649656197_n.jpg",
+        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/cjglydxghe/out/v1/8977baf175da4b94873194613dd3fe55/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+    },
+    {
+        "name": "SP0TV2 HD",
+        "logo": "",
+        "url": "https://qp-pldt-live-grp-13-prod.akamaized.net/out/u/dr_spotv2hd.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "useProxy": true
+    },
+    {
+        "name": "SportzX Live",
+        "logo": "",
+        "url": "https://mainstreams.pro/hls/bvnsqdfvgha70.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://streamscenter.online/",
+        "origin": "https://streamscenter.online"
+    },
+    {
+        "name": "WILLOW HD",
+        "logo": "https://s21.q4cdn.com/819998841/files/doc_news/2024/May/Willow-logo-transparent-cb.png",
+        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/tll6uwepxa/out/v1/a7f67cbb33df46539312956427343886/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "290e09c837da78d5cd961978d390515c",
+        "key": "b748836c71e6a4ca68ef5b5652db6247",
+        "useProxy": true
+    },
+    {
+        "name": "CTV SPORTS FHD",
+        "logo": "https://r2.thesportsdb.com/images/media/channel/logo/wwr35d1665918725.png",
+        "url": "https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/sh9xmjbhhr/out/v1/6b4982b95f7843659ead6393341dd532/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "ac59787c884c9b19e3a6219c974c2fd2",
+        "key": "443fd36e2a294f3ce69fdb7488fdd65a",
+        "useProxy": true
     },
     {
         "name": "CAZE TV FHD",
@@ -171,230 +734,254 @@
         "group": "FIFA",
         "kid": "ac7abaa9c9481aacfbdac64fc3ec3312",
         "key": "c0c504a2ed2e70b879a650b8770a38c6",
+        "useProxy": true,
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
-    },
-    {
-        "name": "FOX ONE HD",
-        "logo": "https://images.seeklogo.com/logo-png/28/1/fox-sports-logo-png_seeklogo-284763.png",
-        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/zpfs5hlgya/out/v1/84b1d591a23640178a8e8aa43c6e59a7/cenc.mpd",
-        "type": "dash",
-        "group": "FIFA",
-        "kid": "0cc2f872759c96de70237e6fa6de03d0",
-        "key": "a879b1d38ed002d4018bce96f9219b8d",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
-    },
-    {
-        "name": "CT SPORTS CZ",
-        "logo": "",
-        "url": "https://dash2.antik.sk/stream/nvidia_ct_sport/playlist_cenc.mpd",
-        "type": "dash",
-        "group": "FIFA",
-        "kid": "11223344556677889900112233445566",
-        "key": "4b80724d0ef86bcb2c21f7999d67739d"
-    },
-    {
-        "name": "TSN SPORTS HD",
-        "logo": "https://www.bellmedia.ca/lede/wp-content/uploads/2024/09/18581592_10155403529061055_8240563011649656197_n.jpg",
-        "url": "https://lb.xyzcloud3.xyz/tsn1/index.m3u8?",
-        "group": "FIFA",
-        "referer": "https://xyzstreams.st/"
-    },
-    {
-        "name": "FOX ONE HD",
-        "logo": "",
-        "url": "https://nhjjhhjhjjhfjj.pages.dev/1782620309/d13e8ee0c4b24feea24648b857c835ce/nxQfvPe6TonSg70BiVuIxj1CsTPWsr-3W_QM1xDZ860/fox-usa.m3u8",
-        "group": "FIFA"
-    },
-    {
-        "name": "FAST SERVER",
-        "logo": "",
-        "url": "https://pulltx.jdnzrgm.com/live/hd-en-6MvZ6BDh8bVkjiFrH4.m3u8?txSecret=9ea257ea225d510134c001e9937b01e4&txTime=6A40A5A0",
-        "group": "FIFA"
-    },
-    {
-        "name": "TELEMUNDO HD",
-        "logo": "https://duckduckgo.com/i/2e3815a5b7ddd3c9.png",
-        "url": "https://instreams.pro/US/NFLHD3/tracks-v1a1/mono.m3u8?",
-        "group": "FIFA",
-        "referer": "https://instream.click/",
-        "origin": "https://instream.click"
-    },
-    {
-        "name": "FOX 4K LIVE",
-        "logo": "",
-        "url": "https://nhjjhhjhjjhfjj.pages.dev/1782620337/7e21316c36d541b9b677408f8a6db63a/lVFaXWqygHC-hqmKdVJqsqrwnDyhP6-cxUO-gQ9QoqA/fox4k-usa.m3u8",
-        "group": "FIFA"
-    },
-    {
-        "name": "TELEMUNDO FHD",
-        "logo": "https://duckduckgo.com/i/2e3815a5b7ddd3c9.png",
-        "url": "https://lb.xyzcloud3.xyz/Telemundo/index.m3u8?",
-        "group": "FIFA",
-        "referer": "https://xyzstreams.st/"
-    },
-    {
-        "name": "ARABIC LIVE FHD",
-        "logo": "",
-        "url": "https://cdn2.xyzstreams.st/bein4kinternal/index.m3u8?",
-        "group": "FIFA",
-        "referer": "https://xyzstreams.st/"
-    },
-    {
-        "name": "FUSSBALL 4K LIVE",
-        "logo": "",
-        "url": "https://nhjjhhjhjjhfjj.pages.dev/1782620376/f12e9006f707402c9d9c3c5859f19242/0M7hG3s5BtWTDk6vQvpV8NyGm_tFVlghlFrBZ8ByN40/fusballtv2uhd-de.m3u8",
-        "group": "FIFA"
-    },
-    {
-        "name": "IRIB 4K",
-        "logo": "",
-        "url": "https://ncdn.telewebion.ir/faratar/live/playlist.m3u8",
-        "group": "FIFA"
-    },
-    {
-        "name": "SportzX Live",
-        "logo": "",
-        "url": "https://instreams.pro/EU/HDWC1/tracks-v1a1/mono.m3u8?",
-        "group": "FIFA",
-        "referer": "https://instream.click/",
-        "origin": "https://instream.click"
-    },
-    {
-        "name": "HD SERVER ENG",
-        "logo": "",
-        "url": "https://edge2caster.pro/hls/b0h5fNwDKH.m3u8?",
-        "group": "FIFA",
-        "referer": "https://streamscenter.online/",
-        "origin": "https://streamscenter.online"
-    },
-    {
-        "name": "HD SERVER AR",
-        "logo": "",
-        "url": "https://mainstreams.pro/hls/sqdahach1ax.m3u8?",
-        "group": "FIFA",
-        "referer": "https://streamscenter.online/",
-        "origin": "https://streamscenter.online"
-    },
-    {
-        "name": "SD SERVER [ENG]",
-        "logo": "",
-        "url": "http://193.47.62.55/hls/fllll.m3u8?",
-        "group": "FIFA",
-        "referer": "http://www.fawanews.sc/",
-        "origin": "http://www.fawanews.sc/"
-    },
-    {
-        "name": "ENG SD SERVER",
-        "logo": "",
-        "url": "http://193.47.62.42/hls/JCCCC.m3u8?",
-        "group": "FIFA",
-        "referer": "http://www.fawanews.sc/",
-        "origin": "http://www.fawanews.sc/"
-    },
-    {
-        "name": "SD SERVER [SWE]",
-        "logo": "",
-        "url": "http://193.47.62.55/hls/skkkkq.m3u8?",
-        "group": "FIFA",
-        "referer": "http://www.fawanews.sc/",
-        "origin": "http://www.fawanews.sc/"
-    },
-    {
-        "name": "beiN SPORTS FR",
-        "logo": "https://play-lh.googleusercontent.com/jBDZq3aBmCXuvtuJHEasqsdYPRxMBGzYmEha4dMlgoIk19Zlh6BGQC08Zt6Ifrmzhg",
-        "url": "http://193.47.62.47/hls/skkkk.m3u8?",
-        "group": "FIFA",
-        "referer": "http://www.fawanews.sc/",
-        "origin": "http://www.fawanews.sc/"
-    },
-    {
-        "name": "ESPANOL SD",
-        "logo": "",
-        "url": "http://193.47.62.47/hls/skkkkqq.m3u8",
-        "group": "FIFA",
-        "referer": "http://www.fawanews.sc/",
-        "origin": "http://www.fawanews.sc/"
-    },
-    {
-        "name": "Bein Sports 2 Arabic",
-        "logo": "https://play-lh.googleusercontent.com/jBDZq3aBmCXuvtuJHEasqsdYPRxMBGzYmEha4dMlgoIk19Zlh6BGQC08Zt6Ifrmzhg",
-        "url": "https://1nyaler.streamhostingcdn.top/stream/21/index.m3u8",
-        "group": "FIFA"
-    },
-    {
-        "name": "QAZ SPORTS FHD",
-        "logo": "https://cdn.livesoccertv.com/images/channels/thumbnails/kazsport-kazakhstan.jpg",
-        "url": "https://fo03-bkm.beetv.kz/bpk-tv/000003038/tve/index.m3u8",
-        "group": "FIFA"
     },
     {
         "name": "FOX SPORTS HD",
         "logo": "https://images.seeklogo.com/logo-png/28/1/fox-sports-logo-png_seeklogo-284763.png",
-        "url": "https://nhjjhhjhjjhfjj.pages.dev/1782620425/1fcab3ef7aa54fcc96295a263a43a5e8/iszYy3vIf-W7MjE0bwjQeg46eYPpOuoJPeNqUMV03SY/fox-sports-1.m3u8",
-        "group": "FIFA"
-    },
-    {
-        "name": "FAST SERVER",
-        "logo": "",
-        "url": "https://pulltx.jdnzrgm.com/live/hd-en-6MvZ6BDgTuQ97smAfg.m3u8?txSecret=d2713a5e0b0cbc848f90d6e26db0ec55&txTime=6A40A5A0",
-        "group": "FIFA"
-    },
-    {
-        "name": "NBC SPORTS HD",
-        "logo": "",
-        "url": "https://instreams.pro/US/NFLHD4/tracks-v1a1/mono.m3u8?",
+        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/cizlveblk4/out/v1/e5c36c41621e4384b80427d87199433a/cenc.mpd",
+        "type": "dash",
         "group": "FIFA",
-        "referer": "https://instream.click/",
-        "origin": "https://instream.click"
+        "kid": "d7d78ea2021a29541136bd5dc8352fe7",
+        "key": "6425ac4c0cdf906fe0cce5cf40dc8933",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
     },
     {
-        "name": "FS1 4K LIVE",
+        "name": "D Sports FHD",
         "logo": "",
-        "url": "https://nhjjhhjhjjhfjj.pages.dev/1782620441/2b6f350f0f094078ad5d542024c0bbdc/5jGjRunnZertHWhMB4wqeuPH36ggz4BxRzaVpvamOmY/fox-sports-1-4k.m3u8",
-        "group": "FIFA"
+        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/rgilyeubta/out/v1/09a67027b18f4fd78aaa3794a2aacfe8/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "03f12d6a3dbfd3a6fa7dd7f6417e0c11",
+        "key": "ea07b87acdf2e45be824cde4a1cf3504",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
     },
     {
-        "name": "NBC UNIVERSO FHD",
-        "logo": "",
-        "url": "https://nhjjhhjhjjhfjj.pages.dev/1782620480/dfa225afa3424a57b3620e5a37cafa5e/x6IBjLOft38TkP3F6YzzKZJAVyqgaCr8TT431OHAP1A/universo-usa.m3u8",
-        "group": "FIFA"
+        "name": "CAZE TV FHD",
+        "logo": "https://duckduckgo.com/i/dab0d6887915781c.png",
+        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/ui54qo0g6h/out/v1/620e1448188d4bbe9a28d0dd52f45bb7/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "ba6aca5a550163c38d06646bb50f04e7",
+        "key": "516c3b471fce48a5b7a2e5ee7dd505f2",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
     },
     {
-        "name": "FUSSBALL 4K LIVE",
+        "name": "TVE La 1 FHD",
+        "logo": "https://r2.thesportsdb.com/images/media/channel/logo/p19tzj1781340041.png",
+        "url": "https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/c7di7zkdor/out/v1/f7d5b356e048494a8325563e8916d50b/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "745cd6ec34a58f2f7ac2af35dc3da6d2",
+        "key": "ae008f1e47e6567fe4201a6ff8f1ae54",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+    },
+    {
+        "name": "BBC SPORTS",
         "logo": "",
-        "url": "https://nhjjhhjhjjhfjj.pages.dev/1782620487/f6024203081c4ce6ad7067875be65de7/nSZjKjuLEbP85dgtn1N6Igm6CejbiK5jSvJ03l35mn4/fusballtv1uhd-de.m3u8",
-        "group": "FIFA"
+        "url": "https://inproviszon.st/bbc-xyz-waUvqaAACr.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "CANAL5 FHD",
+        "logo": "https://r2.thesportsdb.com/images/media/channel/logo/sonnfj1629403437.png",
+        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/ntkdl68eob/out/v1/bd5dfb7676994383881bc6e71877d29d/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "d695093ea3e66d75a4d213a3e2cbf360",
+        "key": "01be3f645e89a067d2786c295f68dde4",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+    },
+    {
+        "name": "CAZE TV FHD",
+        "logo": "https://duckduckgo.com/i/dab0d6887915781c.png",
+        "url": "https://otte.cache.aiv-cdn.net/gru-nitro/live/clients/dash/enc/iayg0kyrof/out/v1/91dc04907f56415b897faccfa9d252da/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "1223d5105392cabf1bb9c2c1fdf6539a",
+        "key": "340b409f4b8f78a343e0363a7938df38",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+    },
+    {
+        "name": "CTV SPORTS FHD",
+        "logo": "https://r2.thesportsdb.com/images/media/channel/logo/cwf4wo1665918379.png",
+        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/enc/72sjo8hygl/out/v1/3079be34d72a4985852d299a02406a0c/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "kid": "d185684e2330de5bea436daa094a5e86",
+        "key": "014f0116154f5bf0050e03a6b0a23157",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
     },
     {
         "name": "SportzX Live",
         "logo": "",
-        "url": "https://instreams.pro/EU/HDWC3/tracks-v1a1/mono.m3u8?",
+        "url": "https://mainstreams.pro/hls/dazhfiach15.m3u8?",
         "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://streamscenter.online/",
+        "origin": "https://streamscenter.online"
+    },
+    {
+        "name": "SportzX Live",
+        "logo": "",
+        "url": "https://mainstreams.pro/hls/16yuitzaerghbhc16.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://streamscenter.online/",
+        "origin": "https://streamscenter.online"
+    },
+    {
+        "name": "HD SERVER",
+        "logo": "",
+        "url": "https://instreams.pro/US/MLB2/tracks-v1a1/mono.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
         "referer": "https://instream.click/",
         "origin": "https://instream.click"
     },
     {
-        "name": "HD SERVER ENG",
+        "name": "SportzX Live",
         "logo": "",
-        "url": "https://edgestreams.pro/hls/24SDAZFcsqnj24.m3u8?",
+        "url": "https://mainstreams.pro/hls/ihfazugfyjcazich17.m3u8?",
         "group": "FIFA",
+        "useProxy": true,
         "referer": "https://streamscenter.online/",
         "origin": "https://streamscenter.online"
     },
     {
-        "name": "HD SERVER AR",
+        "name": "HD SERVER",
         "logo": "",
-        "url": "https://mainstreams.pro/hls/eJmauBDCIf.m3u8?",
+        "url": "https://instreams.pro/US/MLB3/tracks-v1a1/mono.m3u8?",
         "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "HIGHLIGHTS [EN]",
+        "logo": "",
+        "url": "https://soccerfull.net/hls/14567.m3u8",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "HIGHLIGHTS [RU]",
+        "logo": "",
+        "url": "https://fullmatchshows.embedseek.com/hlsmod/p16-ad-site-sign-sg.tiktokcdn.com/iK2dFmLHvEW6gMl7DiI3lA/il/ojqwdns5/la5p6t/tt/master.m3u8",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "FULL MATCH [EN]",
+        "logo": "",
+        "url": "https://fullmatchshows.embedseek.com/hlsmod/p16-ad-site-sign-sg.tiktokcdn.com/n58ZlN7_G01MM86dFkJvrw/k5/ojqwdns5/pvtp53/tt/master.m3u8",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "FULL MATCH [AR]",
+        "logo": "",
+        "url": "https://fullmatchshows.embedseek.com/hlsmod/p16-ad-site-sign-sg.tiktokcdn.com/NfjGHmrOsZQ0Tt0lJu7YsA/6hf/v1feafng/xnrgya/tt/master.m3u8",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "EX. HIGHLIGHTS [EN]",
+        "logo": "",
+        "url": "https://fullmatchshows.embedseek.com/hlsmod/p16-ad-site-sign-sg.tiktokcdn.com/Vvkc1CjxevzIUqbqymzW6g/urp/ojqwdns5/ic8vvp/tt/master.m3u8",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "HIGHLIGHTS",
+        "logo": "",
+        "url": "https://fullmatchshows.embedseek.com/hlsmod/p16-ad-site-sign-sg.tiktokcdn.com/ZQCqetWlb7JVFfZ0206nmw/6hf/ojqwdns5/xnr8bf/tt/master.m3u8",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "FULL MATCH [RU]",
+        "logo": "",
+        "url": "https://fullmatchshows.embedseek.com/hlsmod/p16-ad-site-sign-sg.tiktokcdn.com/Ta3NNOj6s1U4FJRtswB_uw/vz1/ojqwdns5/mjncum/tt/master.m3u8?v=1766826492",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "EX. HIGHLIGHTS [EN]",
+        "logo": "",
+        "url": "https://fullmatchshows.embedseek.com/hlsmod/p16-ad-site-sign-sg.tiktokcdn.com/9K7yBwCA9jC1VhEpSb-eug/mf/v1feafng/brdvsd/tt/master.m3u8",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "ET & PEN [EN]",
+        "logo": "",
+        "url": "https://fullmatchshows.embedseek.com/hlsmod/p16-ad-site-sign-sg.tiktokcdn.com/ywHb5IMV-m5OdBtUGKxkYg/6hf/v1feafng/mjnapk/tt/master.m3u8",
+        "group": "FIFA",
+        "useProxy": false
+    },
+    {
+        "name": "TSN5 SPORTS FHD",
+        "logo": "https://www.bellmedia.ca/lede/wp-content/uploads/2024/09/18581592_10155403529061055_8240563011649656197_n.jpg",
+        "url": "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/zbc6muqib6/out/v1/f5774813052f4d5499e7611d0db33b2f/cenc.mpd",
+        "type": "dash",
+        "group": "FIFA",
+        "useProxy": true,
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+    },
+    {
+        "name": "SportzX LIVE",
+        "logo": "",
+        "url": "https://mainstreams.pro/hls/bzagLHzach19.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
         "referer": "https://streamscenter.online/",
         "origin": "https://streamscenter.online"
     },
     {
-        "name": "ISCREEN BD FHD",
+        "name": "HD SERVER",
         "logo": "",
-        "url": "https://livecdn.rockstreamer.com/main/Iscreen_fifa_main/main/in4_1080p/chunks.m3u8",
+        "url": "https://instreams.pro/US/MLB5/tracks-v1a1/mono.m3u8?",
         "group": "FIFA",
-        "referer": "https://iscreen.com.bd/"
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
+    },
+    {
+        "name": "BBC SPORTS 4K",
+        "logo": "",
+        "url": "https://inproviszon.st/bbc-4k.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://vileembeds.pages.dev/"
+    },
+    {
+        "name": "SportzX Live",
+        "logo": "",
+        "url": "https://mainstreams.pro/hls/Czajafjihafch18.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://streamscenter.online/",
+        "origin": "https://streamscenter.online"
+    },
+    {
+        "name": "HD SERVER",
+        "logo": "",
+        "url": "https://instreams.pro/US/MLB4/tracks-v1a1/mono.m3u8?",
+        "group": "FIFA",
+        "useProxy": true,
+        "referer": "https://instream.click/",
+        "origin": "https://instream.click"
     },
     {
         "name": "LVE  1",
