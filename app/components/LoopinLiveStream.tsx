@@ -1396,7 +1396,24 @@ export default function LoopinLiveStream() {
             setPlayerStatus("error");
           }
         } catch (err: any) {
-          console.error("Shaka Player error:", err);
+          try {
+            // Prefer detailed error output: message, code, category, stack, and own keys
+            if (err instanceof Error) {
+              console.error("Shaka Player error:", err.message, { code: err.code, category: err.category, stack: err.stack });
+            } else {
+              const repr = (() => {
+                try {
+                  return JSON.stringify(err);
+                } catch (e) {
+                  return String(err);
+                }
+              })();
+              console.error("Shaka Player error (raw):", repr, "keys:", Object.keys(err || {}));
+            }
+          } catch (logErr) {
+            // Fallback if logging itself throws
+            console.error("Shaka Player error (logging failed)", logErr, "original:", err);
+          }
 
           let displayError = "Error loading DASH stream.";
           if (err?.code === 6001 || (typeof window !== "undefined" && !window.isSecureContext)) {
