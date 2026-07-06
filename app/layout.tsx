@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import ClientPopupWrapper from "./components/ClientPopupWrapper";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -86,8 +85,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const showPopup = process.env.SHOW_POPUP?.toLowerCase() === "true";
-
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <head>
@@ -98,7 +95,6 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {children}
-        <ClientPopupWrapper showPopup={showPopup} />
       </body>
     </html>
   );
