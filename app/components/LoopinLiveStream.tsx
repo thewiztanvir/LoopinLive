@@ -1399,7 +1399,12 @@ export default function LoopinLiveStream() {
           try {
             // Prefer detailed error output: message, code, category, stack, and own keys
             if (err instanceof Error) {
-              console.error("Shaka Player error:", err.message, { code: err.code, category: err.category, stack: err.stack });
+              const shakaError = err as Error & { code?: number; category?: string; stack?: string };
+              console.error("Shaka Player error:", shakaError.message, {
+                code: shakaError.code,
+                category: shakaError.category,
+                stack: shakaError.stack,
+              });
             } else {
               const repr = (() => {
                 try {
