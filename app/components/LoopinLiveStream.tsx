@@ -1736,14 +1736,15 @@ export default function LoopinLiveStream() {
     [channels, defaultCategories, isDefaultPlaylist]
   );
 
-  // Inject "FIFA World Cup" right after "All" (before Sports) only for the Default TV playlist
+  // Inject "FIFA World Cup" right after "All" only when channels are available and on Default TV playlist
   const displayedCategories = useMemo(() => {
-    if (!isDefaultPlaylist) return categories;
+    if (!isDefaultPlaylist || fifaChannels.length === 0) return categories;
     const allIdx = categories.indexOf("All");
+    if (allIdx === -1) return categories;
     const injected = [...categories];
     injected.splice(allIdx + 1, 0, "FIFA World Cup");
     return injected;
-  }, [categories, isDefaultPlaylist]);
+  }, [categories, isDefaultPlaylist, fifaChannels.length]);
 
   const filteredChannels = useMemo(() => {
     // FIFA World Cup: source from fifa.json, filtered by search

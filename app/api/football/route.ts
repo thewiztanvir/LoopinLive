@@ -15,46 +15,171 @@ const ESPN_HEADERS: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// League catalogue  (slug → display + logo)
-// Logo IDs sourced from ESPN CDN league logos
+// League catalogue — domestic + European competitions
 // ---------------------------------------------------------------------------
-const LEAGUES = [
+const DOMESTIC_LEAGUES = [
   {
     slug: "eng.1",
     name: "Premier League",
     logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/23.png",
+    category: "domestic" as const,
   },
   {
     slug: "esp.1",
     name: "La Liga",
     logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/87.png",
+    category: "domestic" as const,
   },
   {
     slug: "ger.1",
     name: "Bundesliga",
     logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/10.png",
+    category: "domestic" as const,
   },
   {
     slug: "ita.1",
     name: "Serie A",
     logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/55.png",
+    category: "domestic" as const,
   },
   {
     slug: "fra.1",
     name: "Ligue 1",
     logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/9.png",
+    category: "domestic" as const,
   },
+  {
+    slug: "por.1",
+    name: "Primeira Liga",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/84.png",
+    category: "domestic" as const,
+  },
+  {
+    slug: "ned.1",
+    name: "Eredivisie",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/11.png",
+    category: "domestic" as const,
+  },
+  {
+    slug: "eng.2",
+    name: "Championship",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/24.png",
+    category: "domestic" as const,
+  },
+  {
+    slug: "usa.1",
+    name: "MLS",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/19.png",
+    category: "domestic" as const,
+  },
+];
+
+const EUROPEAN_LEAGUES = [
   {
     slug: "uefa.champions",
     name: "Champions League",
     logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/2.png",
+    category: "european" as const,
   },
   {
-    slug: "fifa.world",
-    name: "FIFA World Cup",
-    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/4.png",
+    slug: "uefa.europa",
+    name: "Europa League",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/2572.png",
+    category: "european" as const,
+  },
+  {
+    slug: "uefa.europac",
+    name: "Conference League",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/2975.png",
+    category: "european" as const,
   },
 ];
+
+// International competitions — WC Qualifiers, Nations Leagues, continental cups
+// These return empty arrays when not active — no disruption to the UI
+const INTERNATIONAL_LEAGUES = [
+  {
+    slug: "fifa.worldq.uefa",
+    name: "UEFA WC Qualifiers",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/4.png",
+    category: "international" as const,
+  },
+  {
+    slug: "fifa.worldq.concacaf",
+    name: "CONCACAF WC Qualifiers",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/4.png",
+    category: "international" as const,
+  },
+  {
+    slug: "fifa.worldq.conmebol",
+    name: "CONMEBOL WC Qualifiers",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/4.png",
+    category: "international" as const,
+  },
+  {
+    slug: "fifa.worldq.afc",
+    name: "AFC WC Qualifiers",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/4.png",
+    category: "international" as const,
+  },
+  {
+    slug: "fifa.worldq.caf",
+    name: "CAF WC Qualifiers",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/4.png",
+    category: "international" as const,
+  },
+  {
+    slug: "fifa.worldq.ofc",
+    name: "OFC WC Qualifiers",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/4.png",
+    category: "international" as const,
+  },
+  {
+    slug: "uefa.nations",
+    name: "UEFA Nations League",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/2.png",
+    category: "international" as const,
+  },
+  {
+    slug: "concacaf.nations.league",
+    name: "CONCACAF Nations League",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/65.png",
+    category: "international" as const,
+  },
+  {
+    slug: "conmebol.copa_america",
+    name: "Copa América",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/22.png",
+    category: "international" as const,
+  },
+  {
+    slug: "afc.asian_cup",
+    name: "AFC Asian Cup",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/100.png",
+    category: "international" as const,
+  },
+  {
+    slug: "caf.afcon",
+    name: "AFCON",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/100.png",
+    category: "international" as const,
+  },
+  {
+    slug: "uefa.euro",
+    name: "UEFA European Championship",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/2.png",
+    category: "international" as const,
+  },
+  {
+    slug: "fifa.friendly.m",
+    name: "International Friendlies",
+    logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/4.png",
+    category: "international" as const,
+  },
+];
+
+// Unified catalogue for standings and summary fetching
+const ALL_LEAGUES = [...DOMESTIC_LEAGUES, ...EUROPEAN_LEAGUES, ...INTERNATIONAL_LEAGUES];
 
 // ---------------------------------------------------------------------------
 // Exported interfaces (matched by SportsHub.tsx)
@@ -92,6 +217,7 @@ export interface Match {
   broadcasterRecommendation?: string;
   venue?: string;
   leagueSlug: string;
+  leagueCategory: "domestic" | "european" | "international";
   isKnockout?: boolean;
   roundName?: string;
   homePenaltyScore?: number;
@@ -192,8 +318,6 @@ const ESPN_EVENT_TYPE_MAP: Record<string, "goal" | "card" | "sub"> = {
 
 // ---------------------------------------------------------------------------
 // Map ESPN keyEvents array → our MatchEvent[]
-// teamId comparison: ESPN stores competitor homeTeam ID and awayTeam ID as
-// strings.  We received them from the scoreboard competitor objects.
 // ---------------------------------------------------------------------------
 function mapKeyEvents(
   keyEvents: Array<{
@@ -216,16 +340,12 @@ function mapKeyEvents(
     if (!mapped) continue;
 
     const clockStr = e.clock?.displayValue || "";
-    // clockStr format: "33'" or "45'+2'"
     const minute = parseInt(clockStr.replace("'", "").split("+")[0], 10) || 0;
 
-    // Use e.team?.id for reliable team matching, fall back to e.teamId
     const eventTeamId = String(e.team?.id ?? e.teamId ?? "");
-    // If teamId matches awayTeamId → away; otherwise default home
     const team: "home" | "away" =
       eventTeamId === String(awayTeamId) ? "away" : "home";
 
-    // Format detail cleanly: only show player names for goals/cards/subs
     let detail = "";
     if (mapped === "sub") {
       const pIn = e.participants?.[0]?.athlete?.displayName;
@@ -242,14 +362,11 @@ function mapKeyEvents(
     events.push({ minute, type: mapped, detail, team });
   }
 
-  // Sort ascending by minute (chronological)
   return events.sort((a, b) => a.minute - b.minute);
 }
 
 // ---------------------------------------------------------------------------
 // Map ESPN boxscore teams → our MatchStats
-// Confirmed stat names from API inspection:
-//   possessionPct, shotsOnTarget, wonCorners, foulsCommitted
 // ---------------------------------------------------------------------------
 function mapStats(
   boxscoreTeams: Array<{
@@ -258,7 +375,6 @@ function mapStats(
   }>,
   homeTeamName: string
 ): MatchStats {
-  // Find home team in boxscore; fallback to first team
   const homeTeam =
     boxscoreTeams.find(
       (t) =>
@@ -287,11 +403,7 @@ function mapStats(
 
 // ---------------------------------------------------------------------------
 // Map ESPN summary.standings → our CompetitionStandings
-// CONFIRMED from live API:
-//   - entry.team is a PLAIN STRING (not an object)
-//   - entry.logo is a SEPARATE ARRAY  [{href: "..."}]
-//   - stat names: gamesPlayed, wins, losses, ties, points, pointDifferential, rank
-//   - No goalsFor/goalsAgainst available; use 0
+// Tries multiple stat name variants to handle ESPN's inconsistency across leagues
 // ---------------------------------------------------------------------------
 function mapStandings(
   standingsData: any,
@@ -310,11 +422,17 @@ function mapStandings(
       const table: StandingTeam[] = entries.map((entry: any, i: number) => {
         const stats = entry.stats ?? [];
 
-        const getStat = (name: string): number => {
-          const s = stats.find((s: any) => s.name === name);
-          if (!s) return 0;
-          const v = s.value ?? parseInt(s.displayValue ?? "0", 10);
-          return isNaN(Number(v)) ? 0 : Number(v);
+        // Try multiple stat name variants (ESPN is inconsistent across leagues)
+        const getStat = (...names: string[]): number => {
+          for (const name of names) {
+            const s = stats.find((s: any) => s.name === name);
+            if (s) {
+              const v = s.value ?? parseFloat(s.displayValue ?? "0");
+              const n = Number(v);
+              if (!isNaN(n)) return n;
+            }
+          }
+          return 0;
         };
 
         const rank = getStat("rank") || i + 1;
@@ -323,9 +441,13 @@ function mapStandings(
         const drawn = getStat("ties");
         const played = getStat("gamesPlayed");
         const points = getStat("points");
-        const gd = getStat("pointDifferential");
+        // ESPN uses different stat names across leagues: pointDifferential, goalDifference, GD
+        const gd = getStat("pointDifferential", "goalDifference", "GD");
+        // Goals For / Against: ESPN uses various names
+        const goalsFor = getStat("pointsFor", "goalsFor", "GF", "goals");
+        const goalsAgainst = getStat("pointsAgainst", "goalsAgainst", "GA");
 
-        // Resolve logo: handles both dedicated standings (team object) and scoreboard standings (logo array)
+        // Resolve logo
         let logo = "";
         if (entry.team && typeof entry.team === "object") {
           logo = entry.team.logos?.[0]?.href ?? "";
@@ -350,8 +472,8 @@ function mapStandings(
           drawn,
           lost,
           points,
-          goalsFor: 0,
-          goalsAgainst: 0,
+          goalsFor,
+          goalsAgainst,
           goalDifference: gd,
           form: [] as ("W" | "D" | "L")[],
         };
@@ -382,11 +504,11 @@ function mapStandings(
 }
 
 // ---------------------------------------------------------------------------
-// Fetch a single ESPN scoreboard for a specific date (YYYYMMDD) and return raw match objects
+// Fetch a single ESPN scoreboard for a specific date (YYYYMMDD)
 // ---------------------------------------------------------------------------
 async function fetchScoreboardForDate(
-  league: (typeof LEAGUES)[0],
-  dateStr?: string // YYYYMMDD format; omit for today
+  league: (typeof ALL_LEAGUES)[0],
+  dateStr?: string
 ): Promise<RawMatch[]> {
   try {
     const url = dateStr
@@ -468,6 +590,7 @@ async function fetchScoreboardForDate(
         broadcasterRecommendation: broadcaster || undefined,
         venue,
         leagueSlug: league.slug,
+        leagueCategory: league.category,
         homeTeamId: String(homeComp.id ?? ""),
         awayTeamId: String(awayComp.id ?? ""),
         isKnockout,
@@ -488,18 +611,11 @@ async function fetchScoreboardForDate(
   }
 }
 
-// Convenience wrapper: today (no date param)
-async function fetchScoreboard(league: (typeof LEAGUES)[0]): Promise<RawMatch[]> {
-  return fetchScoreboardForDate(league);
-}
-
 // Helper: get date string in YYYYMMDD format offset by N days from now
-// Uses Asia/Dhaka timezone so that the "today" date matches what Dhaka users see,
-// preventing the UTC midnight mismatch (Dhaka is UTC+6).
+// Uses Asia/Dhaka timezone so "today" matches what Dhaka users see
 function getDateOffset(offsetDays: number): string {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  // Format in Dhaka local time so early-morning Dhaka requests don't get UTC's "yesterday"
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka" })
     .format(d)
     .replace(/-/g, "");
@@ -547,7 +663,7 @@ export async function GET(request: Request) {
   const matchId = searchParams.get("matchId");
   const league = searchParams.get("league");
 
-  // If matchId and league are provided, return the full summary (lineups, detailed stats, events)
+  // If matchId and league are provided, return the full summary
   if (matchId && league) {
     try {
       const summary = await fetchSummary(league, matchId);
@@ -555,7 +671,6 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "Match summary not found" }, { status: 404 });
       }
 
-      // Map statistics
       const boxscoreTeams = (summary.boxscore as any)?.teams;
       
       const getStat = (teamsList: any[], isHome: boolean, name: string): number => {
@@ -591,7 +706,6 @@ export async function GET(request: Request) {
         away: mapDetailedStats(boxscoreTeams, false),
       };
 
-      // Map lineups/rosters
       const rostersData = summary.rosters as any[];
       const mapRoster = (isHome: boolean) => {
         const teamRoster = rostersData?.find((r: any) => isHome ? r.homeAway === "home" : r.homeAway === "away") || (isHome ? rostersData?.[0] : rostersData?.[1]);
@@ -632,7 +746,6 @@ export async function GET(request: Request) {
         away: mapRoster(false),
       } : undefined;
 
-      // Map events timeline
       const keyEvents = summary.keyEvents as any[] || [];
       const getTeamId = (c: any) => c?.team?.id ?? c?.id ?? "";
       const homeTeamId = String(getTeamId((summary.header as any)?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "home")));
@@ -648,11 +761,9 @@ export async function GET(request: Request) {
         const clockStr = e.clock?.displayValue || "";
         const minute = parseInt(clockStr.replace("'", "").split("+")[0], 10) || 0;
         
-        // Use e.team?.id for reliable team matching, fall back to e.teamId
         const eventTeamId = String(e.team?.id ?? e.teamId ?? "");
         const team: "home" | "away" = eventTeamId === awayTeamId ? "away" : "home";
         
-        // Format detail cleanly: only show player names for goals/cards/subs
         let detail = "";
         if (type === "sub") {
           const pIn = e.participants?.[0]?.athlete?.displayName;
@@ -742,44 +853,74 @@ export async function GET(request: Request) {
 
   try {
     // -----------------------------------------------------------------------
-    // Step 1 — Fetch scoreboards: 2 days back + today + 2 days forward
-    //   Past days ensure recent results (e.g. FIFA World Cup) are visible.
-    //   Future days ensure upcoming fixtures are captured.
+    // Step 1 — Fetch scoreboards: 2 days back + today + 5 days forward
+    //   Past days ensure recent results are visible.
+    //   5-day forward window captures UCL/international fixtures announced in advance.
     // -----------------------------------------------------------------------
-    const dayBeforeYesterday = getDateOffset(-2);
-    const yesterday = getDateOffset(-1);
-    const tomorrow = getDateOffset(1);
-    const dayAfter = getDateOffset(2);
+    const date_minus2 = getDateOffset(-2);
+    const date_minus1 = getDateOffset(-1);
+    const date_today  = getDateOffset(0);
+    const date_plus1  = getDateOffset(1);
+    const date_plus2  = getDateOffset(2);
+    const date_plus3  = getDateOffset(3);
+    const date_plus4  = getDateOffset(4);
+    const date_plus5  = getDateOffset(5);
 
-    const today = getDateOffset(0); // Dhaka local date e.g. "20260617"
+    // Fetch domestic + European leagues across all date windows
+    const clubLeagues = [...DOMESTIC_LEAGUES, ...EUROPEAN_LEAGUES];
 
     const [
-      dayBeforeYesterdayResults,
-      yesterdayResults,
-      todayResults,
-      tomorrowResults,
-      dayAfterResults,
-      fifaWorldResults,
+      results_minus2,
+      results_minus1,
+      results_today,
+      results_plus1,
+      results_plus2,
+      results_plus3,
+      results_plus4,
+      results_plus5,
+      // International leagues: fetch today + ±3 days only (they don't need full window)
+      intl_minus2,
+      intl_minus1,
+      intl_today,
+      intl_plus1,
+      intl_plus2,
+      intl_plus3,
     ] = await Promise.all([
-      Promise.all(LEAGUES.filter(l => l.slug !== "fifa.world").map((l) => fetchScoreboardForDate(l, dayBeforeYesterday))),
-      Promise.all(LEAGUES.filter(l => l.slug !== "fifa.world").map((l) => fetchScoreboardForDate(l, yesterday))),
-      // Always pass the explicit Dhaka date so ESPN doesn't default to UTC "today"
-      Promise.all(LEAGUES.filter(l => l.slug !== "fifa.world").map((l) => fetchScoreboardForDate(l, today))),
-      Promise.all(LEAGUES.filter(l => l.slug !== "fifa.world").map((l) => fetchScoreboardForDate(l, tomorrow))),
-      Promise.all(LEAGUES.filter(l => l.slug !== "fifa.world").map((l) => fetchScoreboardForDate(l, dayAfter))),
-      Promise.all(LEAGUES.filter(l => l.slug === "fifa.world").map((l) => fetchScoreboardForDate(l, "2026"))),
+      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_minus2))),
+      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_minus1))),
+      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_today))),
+      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_plus1))),
+      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_plus2))),
+      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_plus3))),
+      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_plus4))),
+      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_plus5))),
+      // International
+      Promise.all(INTERNATIONAL_LEAGUES.map((l) => fetchScoreboardForDate(l, date_minus2))),
+      Promise.all(INTERNATIONAL_LEAGUES.map((l) => fetchScoreboardForDate(l, date_minus1))),
+      Promise.all(INTERNATIONAL_LEAGUES.map((l) => fetchScoreboardForDate(l, date_today))),
+      Promise.all(INTERNATIONAL_LEAGUES.map((l) => fetchScoreboardForDate(l, date_plus1))),
+      Promise.all(INTERNATIONAL_LEAGUES.map((l) => fetchScoreboardForDate(l, date_plus2))),
+      Promise.all(INTERNATIONAL_LEAGUES.map((l) => fetchScoreboardForDate(l, date_plus3))),
     ]);
 
     // Merge and deduplicate by match ID (today takes priority, then outward)
     const seenMatchIds = new Set<string>();
     const allMatches: RawMatch[] = [];
     for (const m of [
-      ...todayResults.flat(),
-      ...yesterdayResults.flat(),
-      ...dayBeforeYesterdayResults.flat(),
-      ...tomorrowResults.flat(),
-      ...dayAfterResults.flat(),
-      ...fifaWorldResults.flat(),
+      ...results_today.flat(),
+      ...results_minus1.flat(),
+      ...results_minus2.flat(),
+      ...results_plus1.flat(),
+      ...results_plus2.flat(),
+      ...results_plus3.flat(),
+      ...results_plus4.flat(),
+      ...results_plus5.flat(),
+      ...intl_today.flat(),
+      ...intl_minus1.flat(),
+      ...intl_minus2.flat(),
+      ...intl_plus1.flat(),
+      ...intl_plus2.flat(),
+      ...intl_plus3.flat(),
     ]) {
       if (!seenMatchIds.has(m.id)) {
         seenMatchIds.add(m.id);
@@ -873,9 +1014,20 @@ export async function GET(request: Request) {
 
     // -----------------------------------------------------------------------
     // Step 5 — Fetch and build standings from dedicated standings endpoints
+    //          Always fetch for domestic and european leagues so their tables
+    //          are visible even when they have no matches this week.
+    //          For international cups, only fetch if they have matches.
     // -----------------------------------------------------------------------
+    const leaguesWithMatches = new Set(allMatches.map((m) => m.leagueSlug));
+    const leaguesToFetchStandings = ALL_LEAGUES.filter(
+      (l) =>
+        l.category === "domestic" ||
+        l.category === "european" ||
+        leaguesWithMatches.has(l.slug)
+    );
+
     const standingsResults = await Promise.all(
-      LEAGUES.map((l) =>
+      leaguesToFetchStandings.map((l) =>
         fetchStandings(l.slug).then((data) => ({
           leagueName: l.name,
           data,

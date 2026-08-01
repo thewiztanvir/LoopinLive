@@ -16,6 +16,7 @@ import {
   MapPin,
   Activity,
   ArrowLeftRight,
+  Globe,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -61,6 +62,7 @@ export interface Match {
   broadcasterRecommendation?: string;
   venue?: string;
   leagueSlug: string;
+  leagueCategory?: "domestic" | "european" | "international";
   isKnockout?: boolean;
   roundName?: string;
   homePenaltyScore?: number;
@@ -379,8 +381,51 @@ function onePerCompetition(list: Match[]): Match[] {
   });
 }
 
+const PRIORITY_ORDER = [
+  // European cups first
+  "Champions League",
+  "Europa League",
+  "Conference League",
+  // Top 5 domestic leagues
+  "Premier League",
+  "La Liga",
+  "Serie A",
+  "Bundesliga",
+  "Ligue 1",
+  // Other domestic
+  "Primeira Liga",
+  "Eredivisie",
+  "Championship",
+  "MLS",
+  // International
+  "UEFA Nations League",
+  "UEFA European Championship",
+  "Copa América",
+  "AFCON",
+  "AFC Asian Cup",
+  "UEFA WC Qualifiers",
+  "CONCACAF WC Qualifiers",
+  "CONMEBOL WC Qualifiers",
+  "AFC WC Qualifiers",
+  "CAF WC Qualifiers",
+  "OFC WC Qualifiers",
+  "CONCACAF Nations League",
+  "International Friendlies",
+  "FIFA World Cup",
+];
+
+const getPriorityScore = (name: string): number => {
+  const lowerName = name.toLowerCase();
+  for (let i = 0; i < PRIORITY_ORDER.length; i++) {
+    if (lowerName.includes(PRIORITY_ORDER[i].toLowerCase())) {
+      return i;
+    }
+  }
+  return 999;
+};
+
 // ─── Helper — groups matches by competition and sorts by priority ─────────────────
-function groupMatchesByCompetition(matchList: Match[]): { competition: string; matches: Match[] }[] {
+function groupMatchesByCompetition(matchList: Match[]): { competition: string; competitionLogo: string; matches: Match[] }[] {
   const groupedMap: Record<string, Match[]> = {};
   matchList.forEach((m) => {
     const comp = m.competition;
@@ -390,28 +435,9 @@ function groupMatchesByCompetition(matchList: Match[]): { competition: string; m
     groupedMap[comp].push(m);
   });
 
-  const priorityOrder = [
-    "FIFA World Cup",
-    "Champions League",
-    "Premier League",
-    "La Liga",
-    "Bundesliga",
-    "Serie A",
-    "Ligue 1",
-  ];
-
-  const getPriorityScore = (name: string): number => {
-    const lowerName = name.toLowerCase();
-    for (let i = 0; i < priorityOrder.length; i++) {
-      if (lowerName.includes(priorityOrder[i].toLowerCase())) {
-        return i;
-      }
-    }
-    return 999;
-  };
-
   const groupedList = Object.entries(groupedMap).map(([competition, matches]) => ({
     competition,
+    competitionLogo: matches[0]?.competitionLogo || "",
     matches,
   }));
 
@@ -437,10 +463,12 @@ export default function SportsHub({
   onTuneToChannel,
 }: SportsHubProps) {
   const [activeTab, setActiveTab] = useState<
-    "overview" | "live" | "upcoming" | "results" | "standings"
+    "overview" | "live" | "upcoming" | "results" | "standings" | "international"
   >("overview");
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [selectedCompetition, setSelectedCompetition] = useState("");
+  const [selectedUpcomingFilter, setSelectedUpcomingFilter] = useState("All");
+  const [selectedResultsFilter, setSelectedResultsFilter] = useState("All");
 
   // Group standings by competition name
   const standingsByCompetition = useMemo(() => {
@@ -461,13 +489,25 @@ export default function SportsHub({
     matches.forEach((m) => {
       if (m.isKnockout) compSet.add(m.competition);
     });
-    return Array.from(compSet).sort((a, b) => a.localeCompare(b));
+    return Array.from(compSet).sort((a, b) => getPriorityScore(a) - getPriorityScore(b));
   }, [standingsByCompetition, matches]);
 
   // Set default standings competition when data arrives
+  // Prefer Champions League, then top domestic leagues, then anything else
   useEffect(() => {
     if (competitionsList.length > 0 && !selectedCompetition) {
-      const defaultComp = competitionsList.find(c => c.toLowerCase().includes("fifa")) || competitionsList[0];
+      const preferred = [
+        "Champions League",
+        "Premier League",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+      ];
+      const defaultComp =
+        preferred
+          .map((p) => competitionsList.find((c) => c.toLowerCase().includes(p.toLowerCase())))
+          .find(Boolean) ?? competitionsList[0];
       setSelectedCompetition(defaultComp);
     }
   }, [competitionsList, selectedCompetition]);
@@ -519,6 +559,34 @@ export default function SportsHub({
     [matches]
   );
 
+  // International matches only (all statuses)
+  const internationalMatches = useMemo(
+    () => matches.filter((m) => m.leagueCategory === "international"),
+    [matches]
+  );
+  const internationalLive = useMemo(
+    () => internationalMatches.filter((m) => m.status === "LIVE" || m.status === "HT"),
+    [internationalMatches]
+  );
+  const internationalUpcoming = useMemo(
+    () =>
+      [...internationalMatches.filter((m) => m.status === "SCHEDULED")].sort(
+        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      ),
+    [internationalMatches]
+  );
+  const internationalResults = useMemo(
+    () =>
+      [...internationalMatches.filter((m) => m.status === "FT")].sort(
+        (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+      ),
+    [internationalMatches]
+  );
+  const groupedInternationalMatches = useMemo(
+    () => groupMatchesByCompetition(internationalMatches),
+    [internationalMatches]
+  );
+
   // Grouped Live Matches
   const groupedLiveMatches = useMemo(() => {
     const groups = groupMatchesByCompetition(liveMatches);
@@ -554,10 +622,11 @@ export default function SportsHub({
 
   const tabs = [
     { id: "overview" as const, label: "Overview" },
-    { id: "live" as const, label: liveMatches.length > 0 ? `Live \u00b7 ${liveMatches.length}` : "Live" },
+    { id: "live" as const, label: liveMatches.length > 0 ? `Live · ${liveMatches.length}` : "Live" },
     { id: "upcoming" as const, label: "Upcoming" },
     { id: "results" as const, label: "Results" },
     { id: "standings" as const, label: "Standings" },
+    { id: "international" as const, label: internationalMatches.length > 0 ? `International · ${internationalMatches.length}` : "International" },
   ];
 
   return (
@@ -650,34 +719,45 @@ export default function SportsHub({
 
               {/* Dashboard Layout */}
               <div className="flex flex-col gap-6 animate-fadeIn">
-                {/* Tournament Status Banner */}
-                {(!loading && (overviewLive.length > 0 || overviewUpcoming.length > 0 || overviewResults.length > 0)) && (() => {
-                  const currentRound = liveMatches[0]?.roundName || upcomingMatches[0]?.roundName || completedMatches[0]?.roundName || "Group Stage";
-                  return (
-                    <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-500/20 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
-                      <div className="flex items-center gap-4 w-full sm:w-auto">
-                        <div className="w-12 h-12 shrink-0 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-400/30">
-                          <Trophy className="w-6 h-6 text-blue-400" />
-                        </div>
-                        <div className="flex flex-col">
-                          <h3 className="text-white font-bold text-lg leading-tight">Tournament Status</h3>
-                          <p className="text-blue-300/80 text-sm font-medium">Phase: <span className="text-white font-bold">{currentRound}</span></p>
-                        </div>
+                {/* Football Hub Snapshot Banner */}
+                {(!loading && (overviewLive.length > 0 || overviewUpcoming.length > 0 || overviewResults.length > 0)) && (
+                  <div className="bg-gradient-to-r from-emerald-950/40 to-slate-900/60 border border-emerald-500/20 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                      <div className="w-12 h-12 shrink-0 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-400/30">
+                        <Trophy className="w-6 h-6 text-emerald-400" />
                       </div>
-                      <div className="flex items-center gap-4 sm:gap-8 bg-black/30 p-3 rounded-xl border border-white/5 w-full sm:w-auto justify-center">
-                        <div className="text-center min-w-[60px]">
-                          <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Played</p>
-                          <p className="text-lg font-black text-white">{completedMatches.length}</p>
-                        </div>
-                        <div className="w-[1px] h-8 bg-white/10" />
-                        <div className="text-center min-w-[60px]">
-                          <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Upcoming</p>
-                          <p className="text-lg font-black text-white">{upcomingMatches.length}</p>
-                        </div>
+                      <div className="flex flex-col">
+                        <h3 className="text-white font-bold text-lg leading-tight">Football Hub</h3>
+                        <p className="text-emerald-300/80 text-sm font-medium">Leagues · Cups · International</p>
                       </div>
                     </div>
-                  );
-                })()}
+                    <div className="flex items-center gap-4 sm:gap-6 bg-black/30 p-3 rounded-xl border border-white/5 w-full sm:w-auto justify-center flex-wrap">
+                      <div className="text-center min-w-[56px]">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Live</p>
+                        <p className={`text-lg font-black ${liveMatches.length > 0 ? "text-rose-400" : "text-white"}`}>{liveMatches.length}</p>
+                      </div>
+                      <div className="w-[1px] h-8 bg-white/10" />
+                      <div className="text-center min-w-[56px]">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Upcoming</p>
+                        <p className="text-lg font-black text-blue-300">{upcomingMatches.length}</p>
+                      </div>
+                      <div className="w-[1px] h-8 bg-white/10" />
+                      <div className="text-center min-w-[56px]">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Results</p>
+                        <p className="text-lg font-black text-white">{completedMatches.length}</p>
+                      </div>
+                      {internationalMatches.length > 0 && (
+                        <>
+                          <div className="w-[1px] h-8 bg-white/10" />
+                          <div className="text-center min-w-[56px]">
+                            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Intl</p>
+                            <p className="text-lg font-black text-amber-400">{internationalMatches.length}</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Dashboard Grid */}
                 <div className="flex flex-col gap-6">
@@ -727,6 +807,57 @@ export default function SportsHub({
                       />
                     )}
                   </div>
+
+                  {/* International Football — shown in overview when active */}
+                  {!loading && internationalMatches.length > 0 && (
+                    <div className="border-t border-white/5 pt-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Globe className="w-4 h-4 text-amber-400" />
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-amber-400">International Football</span>
+                        <span className="text-[10px] text-gray-600 font-medium">({internationalMatches.length})</span>
+                      </div>
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        {internationalLive.length > 0 && (
+                          <MatchSection
+                            title="LIVE"
+                            icon={
+                              <span className="relative flex h-2.5 w-2.5 mr-1">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+                              </span>
+                            }
+                            titleClass="text-rose-400"
+                            matches={internationalLive}
+                            selectedMatch={selectedMatch}
+                            onSelect={setSelectedMatch}
+                            onTuneToChannel={onTuneToChannel}
+                          />
+                        )}
+                        {internationalUpcoming.length > 0 && (
+                          <MatchSection
+                            title="UPCOMING"
+                            icon={<Clock className="w-3.5 h-3.5 text-amber-400" />}
+                            titleClass="text-amber-400"
+                            matches={internationalUpcoming}
+                            selectedMatch={selectedMatch}
+                            onSelect={setSelectedMatch}
+                            onTuneToChannel={onTuneToChannel}
+                          />
+                        )}
+                        {internationalResults.length > 0 && (
+                          <MatchSection
+                            title="RESULTS"
+                            icon={<CheckCircle className="w-3.5 h-3.5 text-gray-500" />}
+                            titleClass="text-gray-500"
+                            matches={internationalResults}
+                            selectedMatch={selectedMatch}
+                            onSelect={setSelectedMatch}
+                            onTuneToChannel={onTuneToChannel}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </>
@@ -771,19 +902,61 @@ export default function SportsHub({
                 <p className="text-sm font-medium">No upcoming matches scheduled</p>
               </div>
             ) : (
-              <div className="flex flex-col gap-6">
-                {groupedUpcomingMatches.map((group) => (
-                  <MatchSection
-                    key={group.competition}
-                    title={group.competition}
-                    icon={<Clock className="w-3.5 h-3.5 text-blue-400" />}
-                    titleClass="text-blue-400"
-                    matches={group.matches}
-                    selectedMatch={selectedMatch}
-                    onSelect={setSelectedMatch}
-                    onTuneToChannel={onTuneToChannel}
-                  />
-                ))}
+              <div className="flex flex-col gap-6 animate-fadeIn">
+                {/* Competition Chips */}
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-2">
+                  <button
+                    onClick={() => setSelectedUpcomingFilter("All")}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all duration-200 shrink-0 ${
+                      selectedUpcomingFilter === "All"
+                        ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary"
+                        : "bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    All Matches
+                  </button>
+                  {groupedUpcomingMatches.map((group) => (
+                    <button
+                      key={group.competition}
+                      onClick={() => setSelectedUpcomingFilter(group.competition)}
+                      className={`px-4 py-1.5 flex items-center gap-2 rounded-full text-xs font-semibold whitespace-nowrap border transition-all duration-200 shrink-0 ${
+                        selectedUpcomingFilter === group.competition
+                          ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary"
+                          : "bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                      }`}
+                    >
+                      {group.competitionLogo && (
+                        <img src={group.competitionLogo} alt={group.competition} className="w-3.5 h-3.5 object-contain opacity-80" />
+                      )}
+                      {group.competition}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Match Lists */}
+                {groupedUpcomingMatches
+                  .filter((group) => selectedUpcomingFilter === "All" || group.competition === selectedUpcomingFilter)
+                  .map((group) => {
+                    const isPreview = selectedUpcomingFilter === "All";
+                    return (
+                      <MatchSection
+                        key={group.competition}
+                        title={group.competition}
+                        icon={group.competitionLogo ? <img src={group.competitionLogo} alt="" className="w-4 h-4 object-contain" /> : <Clock className="w-3.5 h-3.5 text-blue-400" />}
+                        titleClass="text-blue-400"
+                        matches={group.matches}
+                        selectedMatch={selectedMatch}
+                        onSelect={setSelectedMatch}
+                        onTuneToChannel={onTuneToChannel}
+                        previewLimit={isPreview ? 3 : undefined}
+                        onViewAll={
+                          isPreview && group.matches.length > 3
+                            ? () => setSelectedUpcomingFilter(group.competition)
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
               </div>
             )
           )}
@@ -796,19 +969,61 @@ export default function SportsHub({
                 <p className="text-sm font-medium">No results yet</p>
               </div>
             ) : (
-              <div className="flex flex-col gap-6">
-                {groupedCompletedMatches.map((group) => (
-                  <MatchSection
-                    key={group.competition}
-                    title={group.competition}
-                    icon={<CheckCircle className="w-3.5 h-3.5 text-gray-500" />}
-                    titleClass="text-gray-500"
-                    matches={group.matches}
-                    selectedMatch={selectedMatch}
-                    onSelect={setSelectedMatch}
-                    onTuneToChannel={onTuneToChannel}
-                  />
-                ))}
+              <div className="flex flex-col gap-6 animate-fadeIn">
+                {/* Competition Chips */}
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-2">
+                  <button
+                    onClick={() => setSelectedResultsFilter("All")}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all duration-200 shrink-0 ${
+                      selectedResultsFilter === "All"
+                        ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary"
+                        : "bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    All Results
+                  </button>
+                  {groupedCompletedMatches.map((group) => (
+                    <button
+                      key={group.competition}
+                      onClick={() => setSelectedResultsFilter(group.competition)}
+                      className={`px-4 py-1.5 flex items-center gap-2 rounded-full text-xs font-semibold whitespace-nowrap border transition-all duration-200 shrink-0 ${
+                        selectedResultsFilter === group.competition
+                          ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary"
+                          : "bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                      }`}
+                    >
+                      {group.competitionLogo && (
+                        <img src={group.competitionLogo} alt={group.competition} className="w-3.5 h-3.5 object-contain opacity-80" />
+                      )}
+                      {group.competition}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Match Lists */}
+                {groupedCompletedMatches
+                  .filter((group) => selectedResultsFilter === "All" || group.competition === selectedResultsFilter)
+                  .map((group) => {
+                    const isPreview = selectedResultsFilter === "All";
+                    return (
+                      <MatchSection
+                        key={group.competition}
+                        title={group.competition}
+                        icon={group.competitionLogo ? <img src={group.competitionLogo} alt="" className="w-4 h-4 object-contain grayscale opacity-60" /> : <CheckCircle className="w-3.5 h-3.5 text-gray-500" />}
+                        titleClass="text-gray-500"
+                        matches={group.matches}
+                        selectedMatch={selectedMatch}
+                        onSelect={setSelectedMatch}
+                        onTuneToChannel={onTuneToChannel}
+                        previewLimit={isPreview ? 3 : undefined}
+                        onViewAll={
+                          isPreview && group.matches.length > 3
+                            ? () => setSelectedResultsFilter(group.competition)
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
               </div>
             )
           )}
@@ -873,6 +1088,88 @@ export default function SportsHub({
             )
           )}
 
+          {/* ── INTERNATIONAL ─────────────────────────────────────────────── */}
+          {activeTab === "international" && (
+            groupedInternationalMatches.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
+                <Globe className="w-10 h-10 text-gray-600 shrink-0" />
+                <p className="text-sm font-medium">No international matches right now</p>
+                <p className="text-xs text-gray-600">World Cup Qualifiers, Nations League &amp; continental cups will appear here when active</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-6">
+                {/* International header */}
+                <div className="flex items-center gap-3 pb-1 border-b border-white/5">
+                  <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center border border-amber-400/30 shrink-0">
+                    <Globe className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-sm">International Football</h3>
+                    <p className="text-amber-300/70 text-xs">World Cup Qualifiers · Nations League · Continental Cups</p>
+                  </div>
+                </div>
+
+                {/* Live international */}
+                {internationalLive.length > 0 && (
+                  <MatchSection
+                    title="LIVE NOW"
+                    icon={
+                      <span className="relative flex h-2.5 w-2.5 mr-1">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+                      </span>
+                    }
+                    titleClass="text-rose-400"
+                    matches={internationalLive}
+                    selectedMatch={selectedMatch}
+                    onSelect={setSelectedMatch}
+                    onTuneToChannel={onTuneToChannel}
+                  />
+                )}
+
+                {/* Upcoming international */}
+                {internationalUpcoming.length > 0 && (
+                  <MatchSection
+                    title="UPCOMING"
+                    icon={<Clock className="w-3.5 h-3.5 text-amber-400" />}
+                    titleClass="text-amber-400"
+                    matches={internationalUpcoming}
+                    selectedMatch={selectedMatch}
+                    onSelect={setSelectedMatch}
+                    onTuneToChannel={onTuneToChannel}
+                  />
+                )}
+
+                {/* International results */}
+                {internationalResults.length > 0 && (
+                  <MatchSection
+                    title="RESULTS"
+                    icon={<CheckCircle className="w-3.5 h-3.5 text-gray-500" />}
+                    titleClass="text-gray-500"
+                    matches={internationalResults}
+                    selectedMatch={selectedMatch}
+                    onSelect={setSelectedMatch}
+                    onTuneToChannel={onTuneToChannel}
+                  />
+                )}
+
+                {/* Grouped by competition view */}
+                {internationalLive.length === 0 && internationalUpcoming.length === 0 && internationalResults.length === 0 && groupedInternationalMatches.map((group) => (
+                  <MatchSection
+                    key={group.competition}
+                    title={group.competition}
+                    icon={<Globe className="w-3.5 h-3.5 text-amber-400" />}
+                    titleClass="text-amber-400"
+                    matches={group.matches}
+                    selectedMatch={selectedMatch}
+                    onSelect={setSelectedMatch}
+                    onTuneToChannel={onTuneToChannel}
+                  />
+                ))}
+              </div>
+            )
+          )}
+
         </motion.div>
       </AnimatePresence>
 
@@ -899,6 +1196,8 @@ function MatchSection({
   selectedMatch,
   onSelect,
   onTuneToChannel,
+  previewLimit,
+  onViewAll,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -907,14 +1206,15 @@ function MatchSection({
   selectedMatch: Match | null;
   onSelect: (m: Match) => void;
   onTuneToChannel?: (name: string) => void;
+  previewLimit?: number;
+  onViewAll?: () => void;
 }) {
-  const [displayCount, setDisplayCount] = useState(4);
-  const displayMatches = matches.slice(0, displayCount);
-  const hasMore = displayCount < matches.length;
+  const displayMatches = previewLimit ? matches.slice(0, previewLimit) : matches;
+  const hasMore = previewLimit ? matches.length > previewLimit : false;
 
   return (
-    <div className="flex flex-col gap-2.5">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-2.5 bg-black/20 p-4 rounded-xl border border-white/5">
+      <div className="flex items-center justify-between pb-2 border-b border-white/5">
         <div className="flex items-center gap-2">
           {icon}
           <span
@@ -926,16 +1226,8 @@ function MatchSection({
             ({matches.length})
           </span>
         </div>
-        {hasMore && (
-          <button
-            onClick={() => setDisplayCount((prev) => prev + 4)}
-            className="text-[10px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 transition-colors"
-          >
-            Load More ({matches.length - displayCount})
-          </button>
-        )}
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-1">
         {displayMatches.map((match, i) => (
           <motion.div
             key={match.id}
@@ -952,13 +1244,13 @@ function MatchSection({
           </motion.div>
         ))}
       </div>
-      {displayCount > 4 && (
-        <div className="flex justify-center mt-2">
+      {hasMore && onViewAll && (
+        <div className="flex justify-center mt-3 border-t border-white/5 pt-4">
            <button
-            onClick={() => setDisplayCount(4)}
-            className="text-[10px] font-bold uppercase tracking-wider text-gray-500 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-6 py-2 rounded-full"
+            onClick={onViewAll}
+            className="text-[11px] font-bold uppercase tracking-wider text-primary hover:text-white transition-colors bg-primary/10 border border-primary/20 hover:bg-primary/30 px-6 py-2 rounded-full flex items-center gap-2"
           >
-            Show Less
+            View All {matches.length} Matches <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
