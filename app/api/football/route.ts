@@ -853,74 +853,28 @@ export async function GET(request: Request) {
 
   try {
     // -----------------------------------------------------------------------
-    // Step 1 — Fetch scoreboards: 2 days back + today + 5 days forward
-    //   Past days ensure recent results are visible.
-    //   5-day forward window captures UCL/international fixtures announced in advance.
+    // Step 1 — Fetch scoreboards: using a date range!
+    //   We fetch past 2 days to get recent results.
+    //   We fetch up to 30 days forward for club leagues to ensure we see schedules
+    //   for leagues that haven't started yet (e.g. Premier League in early August).
+    //   International leagues get a shorter 14-day window.
     // -----------------------------------------------------------------------
-    const date_minus2 = getDateOffset(-2);
-    const date_minus1 = getDateOffset(-1);
-    const date_today  = getDateOffset(0);
-    const date_plus1  = getDateOffset(1);
-    const date_plus2  = getDateOffset(2);
-    const date_plus3  = getDateOffset(3);
-    const date_plus4  = getDateOffset(4);
-    const date_plus5  = getDateOffset(5);
+    const dateRangeClub = `${getDateOffset(-2)}-${getDateOffset(30)}`;
+    const dateRangeIntl = `${getDateOffset(-2)}-${getDateOffset(14)}`;
 
-    // Fetch domestic + European leagues across all date windows
     const clubLeagues = [...DOMESTIC_LEAGUES, ...EUROPEAN_LEAGUES];
 
-    const [
-      results_minus2,
-      results_minus1,
-      results_today,
-      results_plus1,
-      results_plus2,
-      results_plus3,
-      results_plus4,
-      results_plus5,
-      // International leagues: fetch today + ±3 days only (they don't need full window)
-      intl_minus2,
-      intl_minus1,
-      intl_today,
-      intl_plus1,
-      intl_plus2,
-      intl_plus3,
-    ] = await Promise.all([
-      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_minus2))),
-      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_minus1))),
-      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_today))),
-      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_plus1))),
-      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_plus2))),
-      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_plus3))),
-      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_plus4))),
-      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, date_plus5))),
-      // International
-      Promise.all(INTERNATIONAL_LEAGUES.map((l) => fetchScoreboardForDate(l, date_minus2))),
-      Promise.all(INTERNATIONAL_LEAGUES.map((l) => fetchScoreboardForDate(l, date_minus1))),
-      Promise.all(INTERNATIONAL_LEAGUES.map((l) => fetchScoreboardForDate(l, date_today))),
-      Promise.all(INTERNATIONAL_LEAGUES.map((l) => fetchScoreboardForDate(l, date_plus1))),
-      Promise.all(INTERNATIONAL_LEAGUES.map((l) => fetchScoreboardForDate(l, date_plus2))),
-      Promise.all(INTERNATIONAL_LEAGUES.map((l) => fetchScoreboardForDate(l, date_plus3))),
+    const [clubResults, intlResults] = await Promise.all([
+      Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, dateRangeClub))),
+      Promise.all(INTERNATIONAL_LEAGUES.map((l) => fetchScoreboardForDate(l, dateRangeIntl))),
     ]);
 
-    // Merge and deduplicate by match ID (today takes priority, then outward)
+    // Merge and deduplicate by match ID
     const seenMatchIds = new Set<string>();
     const allMatches: RawMatch[] = [];
     for (const m of [
-      ...results_today.flat(),
-      ...results_minus1.flat(),
-      ...results_minus2.flat(),
-      ...results_plus1.flat(),
-      ...results_plus2.flat(),
-      ...results_plus3.flat(),
-      ...results_plus4.flat(),
-      ...results_plus5.flat(),
-      ...intl_today.flat(),
-      ...intl_minus1.flat(),
-      ...intl_minus2.flat(),
-      ...intl_plus1.flat(),
-      ...intl_plus2.flat(),
-      ...intl_plus3.flat(),
+      ...clubResults.flat(),
+      ...intlResults.flat(),
     ]) {
       if (!seenMatchIds.has(m.id)) {
         seenMatchIds.add(m.id);

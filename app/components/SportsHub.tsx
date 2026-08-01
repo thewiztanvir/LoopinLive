@@ -695,9 +695,10 @@ export default function SportsHub({
         >
 
           {/* ── OVERVIEW ─────────────────────────────────────────────────────── */}
+          {/* OVERVIEW */}
           {activeTab === "overview" && (
             <>
-              {/* Skeleton on first load */}
+              {/* Skeleton */}
               {loading && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {Array.from({ length: 6 }).map((_, i) => (
@@ -705,161 +706,264 @@ export default function SportsHub({
                   ))}
                 </div>
               )}
+              {!loading && overviewLive.length === 0 && overviewUpcoming.length === 0 && overviewResults.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
+                  <SoccerBallIcon className="w-10 h-10 text-gray-600 shrink-0" />
+                  <p className="text-sm font-medium">No matches available right now</p>
+                </div>
+              )}
+              {!loading && (overviewLive.length > 0 || overviewUpcoming.length > 0 || overviewResults.length > 0) && (
+                <div className="flex flex-col gap-6 animate-fadeIn">
 
-              {/* Empty state */}
-              {!loading &&
-                overviewLive.length === 0 &&
-                overviewUpcoming.length === 0 &&
-                overviewResults.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
-                    <SoccerBallIcon className="w-10 h-10 text-gray-600 shrink-0" />
-                    <p className="text-sm font-medium">No matches available right now</p>
+                  {/* ── STAT PILLS ── */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <button onClick={() => setActiveTab("live")} className={`flex flex-col items-center justify-center gap-1 p-4 rounded-2xl border transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] ${liveMatches.length > 0 ? "bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/15 hover:border-rose-500/50" : "bg-white/5 border-white/5 hover:bg-white/8"}`}>
+                      {liveMatches.length > 0 && <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse mb-0.5" />}
+                      <span className={`text-2xl font-black tabular-nums ${liveMatches.length > 0 ? "text-rose-400" : "text-white"}`}>{liveMatches.length}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Live Now</span>
+                    </button>
+                    <button onClick={() => setActiveTab("upcoming")} className="flex flex-col items-center justify-center gap-1 p-4 rounded-2xl border bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/15 hover:border-blue-500/35 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]">
+                      <span className="text-2xl font-black text-blue-300 tabular-nums">{upcomingMatches.length}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Upcoming</span>
+                    </button>
+                    <button onClick={() => setActiveTab("results")} className="flex flex-col items-center justify-center gap-1 p-4 rounded-2xl border bg-white/5 border-white/5 hover:bg-white/8 hover:border-white/10 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]">
+                      <span className="text-2xl font-black text-white tabular-nums">{completedMatches.length}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Results</span>
+                    </button>
+                    <button onClick={() => setActiveTab("standings")} className="flex flex-col items-center justify-center gap-1 p-4 rounded-2xl border bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/15 hover:border-emerald-500/35 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]">
+                      <span className="text-2xl font-black text-emerald-400 tabular-nums">{competitionsList.length}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Standings</span>
+                    </button>
                   </div>
-                )}
 
-              {/* Dashboard Layout */}
-              <div className="flex flex-col gap-6 animate-fadeIn">
-                {/* Football Hub Snapshot Banner */}
-                {(!loading && (overviewLive.length > 0 || overviewUpcoming.length > 0 || overviewResults.length > 0)) && (
-                  <div className="bg-gradient-to-r from-emerald-950/40 to-slate-900/60 border border-emerald-500/20 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
-                    <div className="flex items-center gap-4 w-full sm:w-auto">
-                      <div className="w-12 h-12 shrink-0 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-400/30">
-                        <Trophy className="w-6 h-6 text-emerald-400" />
+                  {/* ── LIVE NOW ── */}
+                  {overviewLive.length > 0 && (
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="relative flex h-2.5 w-2.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" /><span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" /></span>
+                          <span className="text-sm font-bold text-white">Live Now</span>
+                          <span className="text-xs text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">{overviewLive.length} matches</span>
+                        </div>
+                        <button onClick={() => setActiveTab("live")} className="text-[10px] font-bold uppercase tracking-wider text-rose-400 hover:text-white transition-colors flex items-center gap-1">See all <ChevronRight className="w-3 h-3" /></button>
                       </div>
-                      <div className="flex flex-col">
-                        <h3 className="text-white font-bold text-lg leading-tight">Football Hub</h3>
-                        <p className="text-emerald-300/80 text-sm font-medium">Leagues · Cups · International</p>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                        {overviewLive.slice(0, 4).map((match, i) => (
+                          <motion.div key={match.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.05 }}>
+                            <MatchCard match={match} isSelected={selectedMatch?.id === match.id} onSelect={() => setSelectedMatch(match)} onTuneToChannel={onTuneToChannel} />
+                          </motion.div>
+                        ))}
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 sm:gap-6 bg-black/30 p-3 rounded-xl border border-white/5 w-full sm:w-auto justify-center flex-wrap">
-                      <div className="text-center min-w-[56px]">
-                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Live</p>
-                        <p className={`text-lg font-black ${liveMatches.length > 0 ? "text-rose-400" : "text-white"}`}>{liveMatches.length}</p>
-                      </div>
-                      <div className="w-[1px] h-8 bg-white/10" />
-                      <div className="text-center min-w-[56px]">
-                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Upcoming</p>
-                        <p className="text-lg font-black text-blue-300">{upcomingMatches.length}</p>
-                      </div>
-                      <div className="w-[1px] h-8 bg-white/10" />
-                      <div className="text-center min-w-[56px]">
-                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Results</p>
-                        <p className="text-lg font-black text-white">{completedMatches.length}</p>
-                      </div>
-                      {internationalMatches.length > 0 && (
-                        <>
-                          <div className="w-[1px] h-8 bg-white/10" />
-                          <div className="text-center min-w-[56px]">
-                            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Intl</p>
-                            <p className="text-lg font-black text-amber-400">{internationalMatches.length}</p>
+                  )}
+
+                  {/* ── MAIN GRID: Left content + Right sidebar ── */}
+                  <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">
+
+                    {/* LEFT */}
+                    <div className="flex flex-col gap-5">
+
+                      {/* UCL Spotlight */}
+                      <button onClick={() => setActiveTab("standings")} className="relative rounded-2xl overflow-hidden border border-blue-800/40 bg-gradient-to-br from-[#071428] via-[#0a1e3a] to-[#040c18] p-5 shadow-[0_0_40px_rgba(30,70,160,0.12)] group text-left w-full transition-all hover:border-blue-600/50 hover:shadow-[0_0_50px_rgba(30,70,160,0.2)]">
+                        <div className="absolute top-0 right-0 w-56 h-56 bg-blue-700/8 rounded-full -translate-y-1/3 translate-x-1/3 blur-3xl pointer-events-none" />
+                        <div className="relative flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl bg-[#0d2347] border border-blue-700/30 flex items-center justify-center shadow-xl shrink-0">
+                              <img src="https://a.espncdn.com/i/leaguelogos/soccer/500/2.png" alt="UCL" className="w-9 h-9 object-contain" onError={e => { (e.target as HTMLImageElement).style.display="none"; }} />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400/60 mb-0.5">UEFA European Cup</p>
+                              <h3 className="text-white font-bold text-base leading-tight">Champions League</h3>
+                              <p className="text-blue-300/50 text-xs mt-0.5">2026/27 · Group stage fixtures coming soon</p>
+                            </div>
                           </div>
-                        </>
+                          <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-3 py-2 rounded-xl border border-blue-500/20 group-hover:bg-blue-500/20 transition-colors">View table</span>
+                        </div>
+                      </button>
+
+                      {/* Europa League Spotlight */}
+                      <button onClick={() => setActiveTab("standings")} className="relative rounded-2xl overflow-hidden border border-orange-900/30 bg-gradient-to-br from-[#140800] via-[#1e1000] to-[#0a0500] p-5 shadow-[0_0_30px_rgba(200,80,0,0.06)] group text-left w-full transition-all hover:border-orange-700/40 hover:shadow-[0_0_40px_rgba(200,80,0,0.12)]">
+                        <div className="relative flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl bg-orange-950/60 border border-orange-800/25 flex items-center justify-center shadow-xl shrink-0">
+                              <img src="https://a.espncdn.com/i/leaguelogos/soccer/500/2572.png" alt="UEL" className="w-9 h-9 object-contain" onError={e => { (e.target as HTMLImageElement).style.display="none"; }} />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-orange-400/60 mb-0.5">UEFA European Cup</p>
+                              <h3 className="text-white font-bold text-base leading-tight">Europa League</h3>
+                              <p className="text-orange-300/40 text-xs mt-0.5">2026/27 · Fixtures announced soon</p>
+                            </div>
+                          </div>
+                          <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-orange-400 bg-orange-500/10 px-3 py-2 rounded-xl border border-orange-500/15 group-hover:bg-orange-500/20 transition-colors">View table</span>
+                        </div>
+                      </button>
+
+                      {/* Upcoming Fixtures grouped by league */}
+                      {groupedUpcomingMatches.length > 0 && (
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-blue-400" />
+                              <span className="text-sm font-bold text-white">Upcoming Fixtures</span>
+                            </div>
+                            <button onClick={() => { setActiveTab("upcoming"); setSelectedUpcomingFilter("All"); }} className="text-[10px] font-bold uppercase tracking-wider text-blue-400 hover:text-white transition-colors flex items-center gap-1">All <ChevronRight className="w-3 h-3" /></button>
+                          </div>
+                          {groupedUpcomingMatches.slice(0, 3).map((group, gi) => (
+                            <motion.div key={group.competition} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, delay: gi * 0.06 }} className="rounded-2xl border border-white/5 overflow-hidden">
+                              <div className="flex items-center justify-between px-4 py-2.5 bg-white/[0.025] border-b border-white/5">
+                                <div className="flex items-center gap-2">
+                                  {group.competitionLogo
+                                    ? <img src={group.competitionLogo} alt="" className="w-4 h-4 object-contain" onError={e => { (e.target as HTMLImageElement).style.display="none"; }} />
+                                    : <SoccerBallIcon className="w-3.5 h-3.5 text-gray-600" />}
+                                  <span className="text-xs font-bold uppercase tracking-wider text-white">{group.competition}</span>
+                                  <span className="text-[10px] text-gray-600">· {group.matches.length}</span>
+                                </div>
+                                <button onClick={() => { setActiveTab("upcoming"); setSelectedUpcomingFilter(group.competition); }} className="text-[9px] font-bold text-primary hover:text-white transition-colors flex items-center gap-0.5">Full schedule <ChevronRight className="w-2.5 h-2.5" /></button>
+                              </div>
+                              <div className="bg-black/20 divide-y divide-white/[0.03]">
+                                {group.matches.slice(0, 3).map((match) => (
+                                  <button key={match.id} onClick={() => setSelectedMatch(match)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.04] transition-colors group/row text-left">
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                      {match.homeLogo && <img src={match.homeLogo} alt="" className="w-5 h-5 object-contain shrink-0" onError={e => { (e.target as HTMLImageElement).style.display="none"; }} />}
+                                      <span className="text-xs font-semibold text-white truncate">{match.homeTeam}</span>
+                                    </div>
+                                    <div className="flex flex-col items-center shrink-0 min-w-[52px]">
+                                      <span className="text-[9px] font-bold text-gray-500 uppercase">vs</span>
+                                      <span className="text-[9px] text-gray-600">{new Date(match.startTime).toLocaleDateString("en-GB",{month:"short",day:"numeric"})}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+                                      <span className="text-xs font-semibold text-white truncate text-right">{match.awayTeam}</span>
+                                      {match.awayLogo && <img src={match.awayLogo} alt="" className="w-5 h-5 object-contain shrink-0" onError={e => { (e.target as HTMLImageElement).style.display="none"; }} />}
+                                    </div>
+                                    <ChevronRight className="w-3 h-3 text-gray-700 group-hover/row:text-gray-400 transition-colors shrink-0" />
+                                  </button>
+                                ))}
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Recent Results grouped by league */}
+                      {groupedCompletedMatches.length > 0 && (
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 text-gray-400" />
+                              <span className="text-sm font-bold text-white">Recent Results</span>
+                            </div>
+                            <button onClick={() => { setActiveTab("results"); setSelectedResultsFilter("All"); }} className="text-[10px] font-bold uppercase tracking-wider text-gray-400 hover:text-white transition-colors flex items-center gap-1">All <ChevronRight className="w-3 h-3" /></button>
+                          </div>
+                          {groupedCompletedMatches.slice(0, 2).map((group, gi) => (
+                            <motion.div key={group.competition} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, delay: gi * 0.06 }} className="rounded-2xl border border-white/5 overflow-hidden">
+                              <div className="flex items-center justify-between px-4 py-2.5 bg-white/[0.02] border-b border-white/5">
+                                <div className="flex items-center gap-2">
+                                  {group.competitionLogo
+                                    ? <img src={group.competitionLogo} alt="" className="w-4 h-4 object-contain grayscale opacity-50" onError={e => { (e.target as HTMLImageElement).style.display="none"; }} />
+                                    : <CheckCircle className="w-3.5 h-3.5 text-gray-600" />}
+                                  <span className="text-xs font-bold uppercase tracking-wider text-gray-300">{group.competition}</span>
+                                  <span className="text-[10px] text-gray-600">· {group.matches.length}</span>
+                                </div>
+                                <button onClick={() => { setActiveTab("results"); setSelectedResultsFilter(group.competition); }} className="text-[9px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-0.5">Full results <ChevronRight className="w-2.5 h-2.5" /></button>
+                              </div>
+                              <div className="bg-black/20 divide-y divide-white/[0.03]">
+                                {group.matches.slice(0, 3).map((match) => (
+                                  <button key={match.id} onClick={() => setSelectedMatch(match)} className="w-full flex items-center gap-2 px-4 py-3 hover:bg-white/[0.04] transition-colors text-left">
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                      {match.homeLogo && <img src={match.homeLogo} alt="" className="w-5 h-5 object-contain shrink-0" onError={e => { (e.target as HTMLImageElement).style.display="none"; }} />}
+                                      <span className={`text-xs font-semibold truncate ${match.homeScore > match.awayScore ? "text-white" : "text-gray-500"}`}>{match.homeTeam}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0 px-2">
+                                      <span className={`text-sm font-black tabular-nums ${match.homeScore > match.awayScore ? "text-white" : "text-gray-500"}`}>{match.homeScore}</span>
+                                      <span className="text-gray-600 text-xs font-bold">–</span>
+                                      <span className={`text-sm font-black tabular-nums ${match.awayScore > match.homeScore ? "text-white" : "text-gray-500"}`}>{match.awayScore}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+                                      <span className={`text-xs font-semibold truncate text-right ${match.awayScore > match.homeScore ? "text-white" : "text-gray-500"}`}>{match.awayTeam}</span>
+                                      {match.awayLogo && <img src={match.awayLogo} alt="" className="w-5 h-5 object-contain shrink-0" onError={e => { (e.target as HTMLImageElement).style.display="none"; }} />}
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* RIGHT: Standings sidebar */}
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="w-4 h-4 text-emerald-400" />
+                          <span className="text-sm font-bold text-white">Standings</span>
+                        </div>
+                        <button onClick={() => setActiveTab("standings")} className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 hover:text-white transition-colors flex items-center gap-1">Full tables <ChevronRight className="w-3 h-3" /></button>
+                      </div>
+
+                      {competitionsList.slice(0, 5).map((compName) => {
+                        const compStandings = standingsByCompetition[compName];
+                        if (!compStandings || compStandings.length === 0) return null;
+                        const top5 = compStandings[0].table.slice(0, 5);
+                        return (
+                          <div key={compName} className="rounded-2xl border border-white/5 overflow-hidden bg-black/20">
+                            <div className="flex items-center justify-between px-3 py-2 bg-white/[0.03] border-b border-white/5">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-300">{compName}</span>
+                              <button onClick={() => { setActiveTab("standings"); setSelectedCompetition(compName); }} className="text-[9px] font-bold text-primary hover:text-white transition-colors">Full ›</button>
+                            </div>
+                            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-2 px-3 py-1 border-b border-white/[0.04]">
+                              <span className="text-[8px] font-bold text-gray-700 uppercase tracking-wider">Club</span>
+                              <span className="text-[8px] font-bold text-gray-700 uppercase tracking-wider text-center w-5">P</span>
+                              <span className="text-[8px] font-bold text-gray-700 uppercase tracking-wider text-center w-5">GD</span>
+                              <span className="text-[8px] font-bold text-gray-700 uppercase tracking-wider text-center w-6">Pts</span>
+                            </div>
+                            {top5.map((entry, idx) => (
+                              <div key={entry.name} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-2 px-3 py-1.5 items-center border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition-colors">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className={`text-[9px] font-bold w-3.5 shrink-0 ${idx === 0 ? "text-emerald-400" : idx <= 3 ? "text-blue-400" : "text-gray-600"}`}>{idx + 1}</span>
+                                  {entry.logo && <img src={entry.logo} alt="" className="w-3.5 h-3.5 object-contain shrink-0" onError={e => { (e.target as HTMLImageElement).style.display="none"; }} />}
+                                  <span className="text-[11px] font-semibold text-white truncate">{entry.name}</span>
+                                </div>
+                                <span className="text-[10px] text-gray-500 text-center w-5 tabular-nums">{entry.played}</span>
+                                <span className={`text-[10px] text-center w-5 tabular-nums ${entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : "text-gray-500"}`}>{entry.goalDifference > 0 ? `+${entry.goalDifference}` : entry.goalDifference}</span>
+                                <span className="text-[12px] font-black text-white text-center w-6 tabular-nums">{entry.points}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+
+                      {competitionsList.length === 0 && (
+                        <div className="rounded-2xl border border-white/5 bg-black/20 p-6 flex flex-col items-center gap-2 text-center">
+                          <Trophy className="w-7 h-7 text-gray-700" />
+                          <p className="text-xs text-gray-500 font-medium">Standings appear once the season begins</p>
+                        </div>
+                      )}
+
+                      {internationalMatches.length > 0 && (
+                        <div className="rounded-2xl border border-amber-500/15 overflow-hidden">
+                          <div className="flex items-center justify-between px-3 py-2.5 bg-amber-500/5 border-b border-amber-500/10">
+                            <div className="flex items-center gap-2">
+                              <Globe className="w-3.5 h-3.5 text-amber-400" />
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">International</span>
+                            </div>
+                            <button onClick={() => setActiveTab("international")} className="text-[9px] font-bold text-amber-400 hover:text-white transition-colors">See all ›</button>
+                          </div>
+                          {[...internationalLive, ...internationalUpcoming, ...internationalResults].slice(0, 4).map((match) => (
+                            <button key={match.id} onClick={() => setSelectedMatch(match)} className="w-full flex items-center justify-between px-3 py-2.5 border-b border-white/[0.03] last:border-0 hover:bg-white/[0.03] transition-colors text-left">
+                              <span className="text-xs text-white font-medium truncate flex-1">{match.homeTeam}</span>
+                              {match.status === "SCHEDULED"
+                                ? <span className="text-[9px] text-gray-500 shrink-0 px-2">{new Date(match.startTime).toLocaleDateString("en-GB",{month:"short",day:"numeric"})}</span>
+                                : <span className="text-xs font-bold text-white shrink-0 px-2 tabular-nums">{match.homeScore}–{match.awayScore}</span>}
+                              <span className="text-xs text-white font-medium truncate flex-1 text-right">{match.awayTeam}</span>
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
-                )}
-
-                {/* Dashboard Grid */}
-                <div className="flex flex-col gap-6">
-                  {/* Live — Full Width */}
-                  {!loading && overviewLive.length > 0 && (
-                    <MatchSection
-                      title="LIVE NOW"
-                      icon={
-                        <span className="relative flex h-2.5 w-2.5 mr-1">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
-                        </span>
-                      }
-                      titleClass="text-rose-400"
-                      matches={overviewLive}
-                      selectedMatch={selectedMatch}
-                      onSelect={setSelectedMatch}
-                      onTuneToChannel={onTuneToChannel}
-                    />
-                  )}
-
-                  {/* Upcoming & Results — Side by Side on Desktop */}
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    {/* Upcoming */}
-                    {!loading && overviewUpcoming.length > 0 && (
-                      <MatchSection
-                        title="UP NEXT"
-                        icon={<Clock className="w-3.5 h-3.5 text-blue-400" />}
-                        titleClass="text-blue-400"
-                        matches={overviewUpcoming}
-                        selectedMatch={selectedMatch}
-                        onSelect={setSelectedMatch}
-                        onTuneToChannel={onTuneToChannel}
-                      />
-                    )}
-
-                    {/* Recent Results */}
-                    {!loading && overviewResults.length > 0 && (
-                      <MatchSection
-                        title="RECENT RESULTS"
-                        icon={<CheckCircle className="w-3.5 h-3.5 text-gray-500" />}
-                        titleClass="text-gray-500"
-                        matches={overviewResults}
-                        selectedMatch={selectedMatch}
-                        onSelect={setSelectedMatch}
-                        onTuneToChannel={onTuneToChannel}
-                      />
-                    )}
-                  </div>
-
-                  {/* International Football — shown in overview when active */}
-                  {!loading && internationalMatches.length > 0 && (
-                    <div className="border-t border-white/5 pt-5">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Globe className="w-4 h-4 text-amber-400" />
-                        <span className="text-[11px] font-bold uppercase tracking-widest text-amber-400">International Football</span>
-                        <span className="text-[10px] text-gray-600 font-medium">({internationalMatches.length})</span>
-                      </div>
-                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                        {internationalLive.length > 0 && (
-                          <MatchSection
-                            title="LIVE"
-                            icon={
-                              <span className="relative flex h-2.5 w-2.5 mr-1">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
-                              </span>
-                            }
-                            titleClass="text-rose-400"
-                            matches={internationalLive}
-                            selectedMatch={selectedMatch}
-                            onSelect={setSelectedMatch}
-                            onTuneToChannel={onTuneToChannel}
-                          />
-                        )}
-                        {internationalUpcoming.length > 0 && (
-                          <MatchSection
-                            title="UPCOMING"
-                            icon={<Clock className="w-3.5 h-3.5 text-amber-400" />}
-                            titleClass="text-amber-400"
-                            matches={internationalUpcoming}
-                            selectedMatch={selectedMatch}
-                            onSelect={setSelectedMatch}
-                            onTuneToChannel={onTuneToChannel}
-                          />
-                        )}
-                        {internationalResults.length > 0 && (
-                          <MatchSection
-                            title="RESULTS"
-                            icon={<CheckCircle className="w-3.5 h-3.5 text-gray-500" />}
-                            titleClass="text-gray-500"
-                            matches={internationalResults}
-                            selectedMatch={selectedMatch}
-                            onSelect={setSelectedMatch}
-                            onTuneToChannel={onTuneToChannel}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
-              </div>
+              )}
             </>
           )}
 
