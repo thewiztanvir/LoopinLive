@@ -226,6 +226,10 @@ export interface Match {
   awayWinner?: boolean;
   homeAdvance?: boolean;
   awayAdvance?: boolean;
+  /** 1 for first leg, 2 for second leg, undefined for single-leg ties */
+  legNumber?: number;
+  /** Shared key linking both legs of the same tie (sorted team IDs) */
+  tieId?: string;
 }
 
 export interface StandingTeam {
@@ -256,6 +260,55 @@ interface RawMatch extends Match {
   leagueSlug: string;
   homeTeamId: string;
   awayTeamId: string;
+}
+
+// ---------------------------------------------------------------------------
+// Helper: determine if a round name represents a true knockout bracket round.
+// Must NOT fire for league-phase names like "League Stage", "Regular Season",
+// "Group Stage", etc. Only fires for genuine bracket rounds.
+// ---------------------------------------------------------------------------
+function isKnockoutRound(roundName: string | undefined): boolean {
+  if (!roundName) return false;
+  const l = roundName.toLowerCase();
+  // Exclude league / group phases explicitly
+  if (
+    l.includes("group") ||
+    l.includes("league stage") ||
+    l.includes("league phase") ||
+    l.includes("regular season") ||
+    l.includes("season") ||
+    l.includes("matchday") ||
+    l.includes("match day")
+  ) return false;
+  // Only true bracket rounds
+  return (
+    l.includes("round of") ||
+    l.includes("quarter") ||
+    l.includes("semi") ||
+    l.includes("final") ||
+    l.includes("knockout") ||
+    l.includes("last 16") ||
+    l.includes("last 32") ||
+    l.includes("last 64") ||
+    l.includes("playoff") ||
+    l.includes("play-off") ||
+    l.includes("elimination") ||
+    /\br(16|32|64|128)\b/.test(l)
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Helper: parse leg number (1 or 2) from ESPN notes array text.
+// ESPN sometimes includes "1st Leg" / "2nd Leg" in competition.notes.
+// ---------------------------------------------------------------------------
+function parseLegNumber(notes: Array<{ type?: string; text?: string }> | undefined): number | undefined {
+  if (!Array.isArray(notes)) return undefined;
+  for (const note of notes) {
+    const t = (note.text || "").toLowerCase();
+    if (t.includes("1st leg") || t.includes("first leg")) return 1;
+    if (t.includes("2nd leg") || t.includes("second leg")) return 2;
+  }
+  return undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -561,8 +614,21 @@ async function fetchScoreboardForDate(
       } else if (seasonObj?.slug) {
         roundName = String(seasonObj.slug).replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
       }
-      
-      const isKnockout = !!roundName && !roundName.toLowerCase().includes("group");
+
+      const isKnockout = isKnockoutRound(roundName);
+
+      // Parse leg number from competition notes (ESPN includes "1st Leg" / "2nd Leg" here)
+      const competitionNotes = competition.notes as Array<{ type?: string; text?: string }> | undefined;
+      const legNumber = parseLegNumber(competitionNotes);
+
+      const homeTeamIdStr = String(homeComp.id ?? homeTeamObj?.id ?? "");
+      const awayTeamIdStr = String(awayComp.id ?? awayTeamObj?.id ?? "");
+
+      // tieId: stable key shared by both legs of the same two-legged tie
+      // Built from sorted team IDs so leg1 and leg2 produce identical keys
+      const tieId = legNumber !== undefined
+        ? [homeTeamIdStr, awayTeamIdStr].sort().join("-")
+        : undefined;
 
       const homePenaltyScore = homeComp.shootoutScore !== undefined ? parseInt(String(homeComp.shootoutScore), 10) : undefined;
       const awayPenaltyScore = awayComp.shootoutScore !== undefined ? parseInt(String(awayComp.shootoutScore), 10) : undefined;
@@ -591,8 +657,8 @@ async function fetchScoreboardForDate(
         venue,
         leagueSlug: league.slug,
         leagueCategory: league.category,
-        homeTeamId: String(homeComp.id ?? ""),
-        awayTeamId: String(awayComp.id ?? ""),
+        homeTeamId: homeTeamIdStr,
+        awayTeamId: awayTeamIdStr,
         isKnockout,
         roundName,
         homePenaltyScore,
@@ -601,6 +667,8 @@ async function fetchScoreboardForDate(
         awayWinner,
         homeAdvance,
         awayAdvance,
+        legNumber,
+        tieId,
       });
     }
 

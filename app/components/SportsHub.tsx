@@ -71,6 +71,10 @@ export interface Match {
   awayWinner?: boolean;
   homeAdvance?: boolean;
   awayAdvance?: boolean;
+  /** 1 = first leg, 2 = second leg, undefined = single-leg tie */
+  legNumber?: number;
+  /** Shared key linking both legs of the same two-legged tie */
+  tieId?: string;
 }
 
 export interface StandingTeam {
@@ -423,6 +427,100 @@ const getPriorityScore = (name: string): number => {
   }
   return 999;
 };
+
+// ─── Competition format classification ───────────────────────────────────────
+// Returns whether a competition is domestic (table-only), a european cup
+// (league phase + knockout), or an international cup (groups + knockout).
+type CompetitionFormat = "domestic" | "european_cup" | "international_cup";
+
+const DOMESTIC_COMP_NAMES = [
+  "premier league", "la liga", "serie a", "bundesliga", "ligue 1",
+  "primeira liga", "eredivisie", "championship", "mls", "liga", "süper lig",
+  "scottish premiership", "jupiler", "primeira", "allsvenskan",
+];
+
+const EUROPEAN_CUP_NAMES = [
+  "champions league", "europa league", "conference league",
+];
+
+function getCompetitionFormat(compName: string): CompetitionFormat {
+  const l = compName.toLowerCase();
+  if (EUROPEAN_CUP_NAMES.some(n => l.includes(n))) return "european_cup";
+  if (DOMESTIC_COMP_NAMES.some(n => l.includes(n))) return "domestic";
+  // International cups: World Cup, Nations League, Copa, AFCON, etc.
+  return "international_cup";
+}
+
+// ─── Competition phase detection ─────────────────────────────────────────────
+// Determines what phase a competition is currently in given available data.
+type CompetitionPhase =
+  | "league_only"     // domestic league: table only, never a bracket
+  | "league_phase"    // european/international cup in group/league stage
+  | "knockout_only"   // only knockout matches, no standings
+  | "both";           // standings AND knockout matches (UCL after R16 draw)
+
+function getCompetitionPhase(
+  format: CompetitionFormat,
+  hasStandings: boolean,
+  hasKnockoutMatches: boolean
+): CompetitionPhase {
+  if (format === "domestic") return "league_only";
+  if (hasStandings && hasKnockoutMatches) return "both";
+  if (hasStandings) return "league_phase";
+  if (hasKnockoutMatches) return "knockout_only";
+  return "league_phase"; // default fallback — show standings section even if empty
+}
+
+// ─── Two-legged tie grouping ──────────────────────────────────────────────────
+// Groups knockout matches into ties (1 or 2 legs) keyed by tieId.
+// Single-leg matches (no tieId) are each their own group.
+interface KnockoutTie {
+  tieId: string;
+  leg1: Match | null;
+  leg2: Match | null;
+  isTwoLegged: boolean;
+  roundName: string;
+}
+
+function groupKnockoutByTie(matches: Match[]): KnockoutTie[] {
+  const tieMap = new Map<string, KnockoutTie>();
+  let singleLegIdx = 0;
+
+  for (const m of matches) {
+    if (m.tieId && m.legNumber) {
+      // Two-legged tie
+      if (!tieMap.has(m.tieId)) {
+        tieMap.set(m.tieId, {
+          tieId: m.tieId,
+          leg1: null,
+          leg2: null,
+          isTwoLegged: true,
+          roundName: m.roundName || "Knockout",
+        });
+      }
+      const tie = tieMap.get(m.tieId)!;
+      if (m.legNumber === 1) tie.leg1 = m;
+      else if (m.legNumber === 2) tie.leg2 = m;
+    } else {
+      // Single-leg: each match is its own group
+      const key = `single-${singleLegIdx++}`;
+      tieMap.set(key, {
+        tieId: key,
+        leg1: m,
+        leg2: null,
+        isTwoLegged: false,
+        roundName: m.roundName || "Knockout",
+      });
+    }
+  }
+
+  return Array.from(tieMap.values()).sort((a, b) => {
+    const dateA = new Date(a.leg1?.startTime || a.leg2?.startTime || 0).getTime();
+    const dateB = new Date(b.leg1?.startTime || b.leg2?.startTime || 0).getTime();
+    return dateA - dateB;
+  });
+}
+
 
 // ─── Helper — groups matches by competition and sorts by priority ─────────────────
 function groupMatchesByCompetition(matchList: Match[]): { competition: string; competitionLogo: string; matches: Match[] }[] {
@@ -1160,34 +1258,72 @@ export default function SportsHub({
                   })}
                 </div>
 
-                {/* Standings Grid/Table or Knockout Progression */}
+                {/* ── Format-Aware Standings / Bracket ── */}
                 {selectedCompetition && (() => {
-                  const compKnockoutMatches = matches.filter(m => m.competition === selectedCompetition && m.isKnockout);
-                  if (compKnockoutMatches.length > 0) {
-                    return <VisualBracket matches={compKnockoutMatches} />;
-                  }
-
+                  const format = getCompetitionFormat(selectedCompetition);
                   const compStandings = standingsByCompetition[selectedCompetition] ?? [];
-                  if (compStandings.length === 0) return null;
-                  
-                  // If there is only one group (like standard domestic leagues)
-                  if (compStandings.length === 1) {
-                    return <StandingsTable standings={compStandings[0]} compact={false} />;
-                  }
+                  const compKnockoutMatches = matches.filter(
+                    m => m.competition === selectedCompetition && m.isKnockout
+                  );
+                  const phase = getCompetitionPhase(
+                    format,
+                    compStandings.length > 0,
+                    compKnockoutMatches.length > 0
+                  );
 
-                  // If there are multiple groups (like FIFA World Cup or Champions League)
                   return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-fadeIn">
-                      {compStandings.map((s, idx) => (
-                        <StandingsTable
-                          key={`${s.competition}-${s.groupName || idx}`}
-                          standings={s}
-                          compact={true}
-                        />
-                      ))}
+                    <div className="flex flex-col gap-6">
+                      {/* ── League / Group-Phase Standings Table(s) ── */}
+                      {(phase === "league_only" || phase === "league_phase" || phase === "both") && compStandings.length > 0 && (
+                        <div>
+                          {(phase === "both") && (
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30 shrink-0">
+                                <BarChart3 className="w-3.5 h-3.5 text-primary" />
+                              </div>
+                              <span className="text-xs font-bold text-primary uppercase tracking-widest">League Phase</span>
+                            </div>
+                          )}
+                          {compStandings.length === 1 ? (
+                            <StandingsTable standings={compStandings[0]} compact={false} />
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-fadeIn">
+                              {compStandings.map((s, idx) => (
+                                <StandingsTable
+                                  key={`${s.competition}-${s.groupName || idx}`}
+                                  standings={s}
+                                  compact={true}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* ── Knockout Stage Bracket ── */}
+                      {(phase === "knockout_only" || phase === "both") && compKnockoutMatches.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center border border-amber-400/30 shrink-0">
+                              <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                            </div>
+                            <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">Knockout Stage</span>
+                          </div>
+                          <KnockoutStageView matches={compKnockoutMatches} />
+                        </div>
+                      )}
+
+                      {/* ── Empty state ── */}
+                      {compStandings.length === 0 && compKnockoutMatches.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-10 text-gray-500 gap-2">
+                          <BarChart3 className="w-8 h-8 text-gray-600 shrink-0" />
+                          <p className="text-sm font-medium">No data available yet</p>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
+
               </>
             )
           )}
@@ -2260,16 +2396,347 @@ function MatchDetailPanel({
   );
 }
 
-// ─── Visual Knockout Bracket ──────────────────────────────────────────────────
+// ─── Knockout Stage Components ─────────────────────────────────────────────────
 
-// A resolved "slot" for a team in a bracket position
-type BracketSlot = {
-  teamName: string;
-  teamLogo: string;
-  confirmed: boolean;
-};
+// ── Aggregate score computation for two-legged ties ──────────────────────────
+// In leg 2, the "home" team is actually the "away" team from leg 1's perspective.
+// We always return scores from the perspective of the leg-1 home team.
+function computeAggregate(leg1: Match, leg2: Match | null): {
+  team1Name: string; team1Logo: string; team1Agg: number;
+  team2Name: string; team2Logo: string; team2Agg: number;
+  winner: "team1" | "team2" | null;
+} {
+  const team1Name = leg1.homeTeam;
+  const team1Logo = leg1.homeLogo;
+  const team2Name = leg1.awayTeam;
+  const team2Logo = leg1.awayLogo;
 
-// Rich bracket node with match data + derived slots for winner propagation
+  // Leg 1: team1 is home
+  const leg1Team1 = leg1.status !== "SCHEDULED" ? leg1.homeScore : 0;
+  const leg1Team2 = leg1.status !== "SCHEDULED" ? leg1.awayScore : 0;
+
+  // Leg 2: team1 is now away (positions are flipped)
+  let leg2Team1 = 0;
+  let leg2Team2 = 0;
+  if (leg2 && leg2.status !== "SCHEDULED") {
+    // In leg 2 the leg-1 away team is at home, so leg2.homeScore → team2's leg2 goals
+    leg2Team1 = leg2.awayScore;
+    leg2Team2 = leg2.homeScore;
+  }
+
+  const team1Agg = leg1Team1 + leg2Team1;
+  const team2Agg = leg1Team2 + leg2Team2;
+
+  // Determine winner: check advance flags first (handles away goals / pens)
+  let winner: "team1" | "team2" | null = null;
+  if (leg2 && leg2.status === "FT") {
+    // Try advance flags from leg 2 (the decisive leg)
+    if (leg2.awayAdvance || leg2.awayWinner) winner = "team1";     // leg2 away = leg1 home = team1
+    else if (leg2.homeAdvance || leg2.homeWinner) winner = "team2";
+    else if (team1Agg > team2Agg) winner = "team1";
+    else if (team2Agg > team1Agg) winner = "team2";
+  } else if (leg1.status === "FT" && !leg2) {
+    // Single-leg in a two-legged slot shouldn't happen but safe fallback
+    if (team1Agg > team2Agg) winner = "team1";
+    else if (team2Agg > team1Agg) winner = "team2";
+  }
+
+  return { team1Name, team1Logo, team1Agg, team2Name, team2Logo, team2Agg, winner };
+}
+
+// ── Two-legged tie card ───────────────────────────────────────────────────────
+function TwoLeggedTieCard({ tie }: { tie: KnockoutTie }) {
+  const { leg1, leg2, roundName } = tie;
+  if (!leg1) return null;
+
+  const agg = computeAggregate(leg1, leg2);
+  const isLive = leg1.status === "LIVE" || leg2?.status === "LIVE";
+  const bothPlayed = leg1.status === "FT" && leg2?.status === "FT";
+  const leg2Pending = leg2 === null || leg2.status === "SCHEDULED";
+  const hasPenalties = bothPlayed && (
+    leg2?.homePenaltyScore !== undefined || leg2?.awayPenaltyScore !== undefined
+  );
+
+  const renderLegRow = (leg: Match, label: string) => {
+    const isLegLive = leg.status === "LIVE" || leg.status === "HT";
+    const isPlayed = leg.status === "FT" || leg.status === "HT";
+    return (
+      <div className={`flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] ${isLegLive ? "bg-rose-950/30" : ""}`}>
+        <span className={`text-[9px] font-black uppercase tracking-widest w-8 shrink-0 ${isLegLive ? "text-rose-400" : "text-gray-500"}`}>
+          {label}
+        </span>
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <TeamLogo src={leg.homeLogo} name={leg.homeTeam} size={14} />
+          <span className="text-xs text-gray-300 truncate">{leg.homeTeam}</span>
+        </div>
+        {isPlayed || isLegLive ? (
+          <span className="text-xs font-black tabular-nums text-white shrink-0 w-8 text-center">
+            {leg.homeScore} – {leg.awayScore}
+          </span>
+        ) : (
+          <span className="text-[10px] text-gray-600 font-semibold shrink-0 w-16 text-center">
+            {formatMatchDate(leg.startTime)}
+          </span>
+        )}
+        <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
+          <span className="text-xs text-gray-300 truncate text-right">{leg.awayTeam}</span>
+          <TeamLogo src={leg.awayLogo} name={leg.awayTeam} size={14} />
+        </div>
+        {isLegLive && (
+          <span className="text-[9px] font-bold text-rose-400 shrink-0 ml-1">{leg.elapsedDisplay}</span>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className={`flex flex-col rounded-2xl overflow-hidden shadow-xl border transition-all duration-300 hover:scale-[1.01]
+      ${isLive
+        ? "bg-gradient-to-br from-rose-950/60 to-black border-rose-500/40 ring-1 ring-rose-500/20"
+        : "bg-gradient-to-br from-slate-900/80 to-black border-slate-700/40"
+      }
+    `}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-1.5 bg-white/[0.03] border-b border-white/[0.06] text-[10px] font-bold">
+        <span className="text-gray-500 uppercase tracking-wider truncate">{roundName}</span>
+        {isLive ? (
+          <span className="flex items-center gap-1 text-rose-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />LIVE
+          </span>
+        ) : bothPlayed ? (
+          <span className="text-gray-500">FT · Agg</span>
+        ) : (
+          <span className="text-blue-400/70">2 Legs</span>
+        )}
+      </div>
+
+      {/* Legs */}
+      {renderLegRow(leg1, "Leg 1")}
+      {leg2 ? renderLegRow(leg2, "Leg 2") : (
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] opacity-40">
+          <span className="text-[9px] font-black uppercase tracking-widest w-8 text-gray-500">Leg 2</span>
+          <span className="text-xs text-gray-600 italic">To be played</span>
+        </div>
+      )}
+
+      {/* Aggregate Row */}
+      <div className={`flex items-center justify-between px-3 py-2.5
+        ${agg.winner ? "bg-gradient-to-r from-primary/5 to-transparent" : "bg-white/[0.02]"}
+      `}>
+        {/* Team 1 */}
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <TeamLogo src={agg.team1Logo} name={agg.team1Name} size={18} />
+          <div className="min-w-0">
+            <p className={`text-xs font-bold truncate ${agg.winner === "team1" ? "text-primary" : "text-white/80"}`}>
+              {agg.team1Name}
+            </p>
+            <p className="text-[9px] text-gray-500 font-medium">Aggregate</p>
+          </div>
+          {agg.winner === "team1" && <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />}
+        </div>
+
+        {/* Agg score */}
+        <div className="flex items-center gap-2 shrink-0 px-3">
+          <span className={`text-lg font-black tabular-nums ${agg.winner === "team1" ? "text-primary" : "text-white"}`}>
+            {agg.team1Agg}
+          </span>
+          <span className="text-gray-600 font-bold">–</span>
+          <span className={`text-lg font-black tabular-nums ${agg.winner === "team2" ? "text-primary" : "text-white"}`}>
+            {agg.team2Agg}
+          </span>
+        </div>
+
+        {/* Team 2 */}
+        <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+          {agg.winner === "team2" && <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />}
+          <div className="min-w-0 text-right">
+            <p className={`text-xs font-bold truncate ${agg.winner === "team2" ? "text-primary" : "text-white/80"}`}>
+              {agg.team2Name}
+            </p>
+            <p className="text-[9px] text-gray-500 font-medium">Aggregate</p>
+          </div>
+          <TeamLogo src={agg.team2Logo} name={agg.team2Name} size={18} />
+        </div>
+      </div>
+
+      {/* Penalties footer */}
+      {hasPenalties && (
+        <div className="px-3 py-1 text-center text-[10px] font-bold text-amber-400 bg-amber-500/5 border-t border-amber-500/10 tracking-wide">
+          Decided on Penalties
+        </div>
+      )}
+
+      {/* Leg 2 pending banner */}
+      {leg2Pending && leg1.status === "FT" && (
+        <div className="px-3 py-1.5 text-center text-[10px] font-bold text-blue-400 bg-blue-500/5 border-t border-blue-500/10 tracking-wide">
+          2nd Leg to be played
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Single-leg match card (no aggregate) ─────────────────────────────────────
+function SingleLegMatchCard({ match, roundName }: { match: Match; roundName: string }) {
+  const isFT = match.status === "FT";
+  const isLive = match.status === "LIVE" || match.status === "HT";
+  const homeIsWinner = match.homeWinner || match.homeAdvance ||
+    (isFT && match.homeScore > match.awayScore && !match.awayWinner && !match.awayAdvance);
+  const awayIsWinner = match.awayWinner || match.awayAdvance ||
+    (isFT && match.awayScore > match.homeScore && !match.homeWinner && !match.homeAdvance);
+  const hasPenalties = isFT && (match.homePenaltyScore !== undefined || match.awayPenaltyScore !== undefined);
+
+  return (
+    <div className={`flex flex-col rounded-2xl overflow-hidden shadow-xl border transition-all duration-300 hover:scale-[1.01]
+      ${isLive
+        ? "bg-gradient-to-br from-rose-950/60 to-black border-rose-500/40 ring-1 ring-rose-500/20"
+        : "bg-gradient-to-br from-slate-900/80 to-black border-slate-700/40"
+      }
+    `}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-1.5 bg-white/[0.03] border-b border-white/[0.06] text-[10px] font-bold">
+        <span className="text-gray-500 uppercase tracking-wider truncate">{roundName}</span>
+        {isLive ? (
+          <span className="flex items-center gap-1 text-rose-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+            LIVE · {match.elapsedDisplay}
+          </span>
+        ) : isFT ? (
+          <span className="text-gray-500 font-bold">FT</span>
+        ) : (
+          <span className="text-blue-400">{formatMatchDate(match.startTime)}</span>
+        )}
+      </div>
+
+      {/* Home team row */}
+      <div className={`flex items-center justify-between px-3 py-3 border-b border-white/[0.05]
+        ${isFT && !homeIsWinner && awayIsWinner ? "opacity-30" : ""}
+        ${isFT && homeIsWinner ? "bg-primary/5" : ""}
+      `}>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <TeamLogo src={match.homeLogo} name={match.homeTeam} size={22} />
+          <span className={`text-sm font-bold truncate ${homeIsWinner && isFT ? "text-primary" : "text-white"}`}>
+            {match.homeTeam}
+          </span>
+          {homeIsWinner && isFT && <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />}
+        </div>
+        <div className="flex items-baseline gap-1 shrink-0 ml-2">
+          {match.status !== "SCHEDULED" ? (
+            <>
+              <span className={`text-base font-black tabular-nums ${homeIsWinner ? "text-primary" : "text-white"}`}>
+                {match.homeScore}
+              </span>
+              {match.homePenaltyScore !== undefined && (
+                <span className="text-[10px] font-bold text-gray-400">({match.homePenaltyScore})</span>
+              )}
+            </>
+          ) : (
+            <span className="text-sm text-gray-600 font-black">—</span>
+          )}
+        </div>
+      </div>
+
+      {/* Away team row */}
+      <div className={`flex items-center justify-between px-3 py-3
+        ${isFT && !awayIsWinner && homeIsWinner ? "opacity-30" : ""}
+        ${isFT && awayIsWinner ? "bg-primary/5" : ""}
+      `}>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <TeamLogo src={match.awayLogo} name={match.awayTeam} size={22} />
+          <span className={`text-sm font-bold truncate ${awayIsWinner && isFT ? "text-primary" : "text-white"}`}>
+            {match.awayTeam}
+          </span>
+          {awayIsWinner && isFT && <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />}
+        </div>
+        <div className="flex items-baseline gap-1 shrink-0 ml-2">
+          {match.status !== "SCHEDULED" ? (
+            <>
+              <span className={`text-base font-black tabular-nums ${awayIsWinner ? "text-primary" : "text-white"}`}>
+                {match.awayScore}
+              </span>
+              {match.awayPenaltyScore !== undefined && (
+                <span className="text-[10px] font-bold text-gray-400">({match.awayPenaltyScore})</span>
+              )}
+            </>
+          ) : (
+            <span className="text-sm text-gray-600 font-black">—</span>
+          )}
+        </div>
+      </div>
+
+      {hasPenalties && (
+        <div className="px-3 py-1 text-center text-[10px] font-bold text-amber-400 bg-amber-500/5 border-t border-amber-500/10 tracking-wide">
+          Decided on Penalties
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── KnockoutStageView — groups ties by round and renders them ─────────────────
+function KnockoutStageView({ matches }: { matches: Match[] }) {
+  // Group by roundName first
+  const roundMap = new Map<string, Match[]>();
+  const roundOrder = [
+    "128", "64", "32", "16", "quarter", "semi", "final", "playoff", "elimination"
+  ];
+  const getRoundScore = (name: string) => {
+    const l = name.toLowerCase();
+    for (let i = 0; i < roundOrder.length; i++) {
+      if (l.includes(roundOrder[i])) return i;
+    }
+    return 99;
+  };
+
+  for (const m of matches) {
+    const round = m.roundName || "Knockout";
+    if (!roundMap.has(round)) roundMap.set(round, []);
+    roundMap.get(round)!.push(m);
+  }
+
+  const rounds = Array.from(roundMap.entries())
+    .sort(([a], [b]) => getRoundScore(a) - getRoundScore(b));
+
+  return (
+    <div className="flex flex-col gap-6 mt-2 animate-fadeIn">
+      {rounds.map(([roundName, roundMatches]) => {
+        const ties = groupKnockoutByTie(roundMatches);
+        return (
+          <div key={roundName}>
+            {/* Round header */}
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/10" />
+              <span className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400 shrink-0 px-2">
+                {roundName}
+              </span>
+              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/10" />
+            </div>
+
+            {/* Tie cards grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {ties.map((tie) =>
+                tie.isTwoLegged ? (
+                  <TwoLeggedTieCard key={tie.tieId} tie={tie} />
+                ) : (
+                  <SingleLegMatchCard
+                    key={tie.tieId}
+                    match={tie.leg1!}
+                    roundName={roundName}
+                  />
+                )
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Legacy VisualBracket kept for any future use ─────────────────────────────
+// (No longer called from the standings tab; KnockoutStageView is used instead)
+
+type BracketSlot = { teamName: string; teamLogo: string; confirmed: boolean };
 type BracketNode = {
   match?: Match;
   roundName: string;
@@ -2294,10 +2761,21 @@ function deriveAdvancer(child: BracketNode): BracketSlot | null {
 }
 
 function buildBracketTree(matches: Match[]): BracketNode | null {
-  const sorted = [...matches].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+  // For two-legged ties, only use the decisive leg (leg 2, or leg 1 if leg 2 not available)
+  const deduped: Match[] = [];
+  const tiesSeen = new Set<string>();
+  for (const m of [...matches].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())) {
+    if (m.tieId) {
+      if (tiesSeen.has(m.tieId) && m.legNumber !== 2) continue; // skip leg 1 if we already have leg 2
+      if (!tiesSeen.has(m.tieId)) tiesSeen.add(m.tieId);
+      if (m.legNumber === 2) deduped.push(m); else if (m.legNumber === 1) deduped.push(m);
+    } else {
+      deduped.push(m);
+    }
+  }
 
   const groups: Record<string, Match[]> = {};
-  sorted.forEach(m => {
+  deduped.forEach(m => {
     const r = m.roundName || "Knockout";
     if (r.toLowerCase().includes("third") || r.toLowerCase().includes("3rd")) return;
     if (!groups[r]) groups[r] = [];
@@ -2316,7 +2794,6 @@ function buildBracketTree(matches: Match[]): BracketNode | null {
   const rounds = Object.keys(groups).map(k => ({ name: k, matches: groups[k] }));
   rounds.sort((a, b) => getRoundScore(a.name) - getRoundScore(b.name));
 
-  // Pad out future rounds that don't exist in data yet
   while (rounds.length > 0 && rounds[rounds.length - 1].matches.length > 1) {
     const lastLen = rounds[rounds.length - 1].matches.length;
     const nextLen = Math.ceil(lastLen / 2);
@@ -2327,27 +2804,20 @@ function buildBracketTree(matches: Match[]): BracketNode | null {
     const r = rounds[roundIdx];
     const match: Match | undefined = r ? r.matches[matchIdx] : undefined;
     const roundName = r ? r.name : "TBD";
-
     const children: BracketNode[] = [];
     if (roundIdx > 0) {
       children.push(buildNode(roundIdx - 1, matchIdx * 2));
       children.push(buildNode(roundIdx - 1, matchIdx * 2 + 1));
     }
-
-    // Determine team slots for this node
     let topSlot: BracketSlot | null = null;
     let bottomSlot: BracketSlot | null = null;
-
     if (match) {
-      // Actual match exists - use its teams
       topSlot = { teamName: match.homeTeam, teamLogo: match.homeLogo, confirmed: true };
       bottomSlot = { teamName: match.awayTeam, teamLogo: match.awayLogo, confirmed: true };
     } else if (children.length >= 2) {
-      // No match yet: derive from children's winners
       topSlot = deriveAdvancer(children[0]);
       bottomSlot = deriveAdvancer(children[1]);
     }
-
     return { match, roundName, topSlot, bottomSlot, children };
   }
 
@@ -2355,187 +2825,23 @@ function buildBracketTree(matches: Match[]): BracketNode | null {
   return buildNode(rounds.length - 1, 0);
 }
 
-function BracketNodeView({ node, isTop, isBottom }: { node: BracketNode; isTop?: boolean; isBottom?: boolean }) {
-  const isFT = node.match?.status === "FT";
-  const isLive = node.match?.status === "LIVE";
-  const homeIsWinner = node.match
-    ? node.match.homeWinner || node.match.homeAdvance || (node.match.homeScore > node.match.awayScore && !node.match.awayWinner && !node.match.awayAdvance)
-    : false;
-  const awayIsWinner = node.match
-    ? node.match.awayWinner || node.match.awayAdvance || (node.match.awayScore > node.match.homeScore && !node.match.homeWinner && !node.match.homeAdvance)
-    : false;
-
-  const { topSlot, bottomSlot, match } = node;
-  const noMatch = !match;
-  const hasPenalties = isFT && (match?.homePenaltyScore !== undefined || match?.awayPenaltyScore !== undefined);
-  const topConfirmedOnly = topSlot?.confirmed && !bottomSlot?.confirmed;
-  const bottomConfirmedOnly = !topSlot?.confirmed && bottomSlot?.confirmed;
-  const bothConfirmed = topSlot?.confirmed && bottomSlot?.confirmed;
-
-  return (
-    <div className="flex items-center">
-      {node.children.length > 0 && (
-        <div className="flex flex-col justify-center">
-          <BracketNodeView node={node.children[0]} isTop={true} />
-          <BracketNodeView node={node.children[1]} isBottom={true} />
-        </div>
-      )}
-
-      <div
-        className={`flex items-center relative
-          ${isTop ? "border-b-[3px] border-r-[3px] border-slate-700/70 pb-4 pr-6 rounded-br-3xl" : ""}
-          ${isBottom ? "border-t-[3px] border-r-[3px] border-slate-700/70 pt-4 pr-6 rounded-tr-3xl mt-[-3px]" : ""}
-        `}
-      >
-        {node.children.length > 0 && <div className="w-6 h-[3px] bg-slate-700/70 shrink-0" />}
-
-        <div
-          className={`w-[260px] sm:w-[320px] shrink-0 m-2 flex flex-col rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-primary/10
-            ${isLive
-              ? "bg-gradient-to-br from-rose-950/80 to-black border border-rose-500/50 ring-2 ring-rose-500/30"
-              : noMatch && (topSlot || bottomSlot)
-              ? "bg-gradient-to-br from-blue-950/40 to-black border border-blue-500/30 ring-1 ring-blue-500/10"
-              : noMatch
-              ? "bg-white/[0.03] border border-white/10"
-              : "bg-gradient-to-br from-slate-900 to-black border border-slate-700/50"
-            }
-          `}
-        >
-          {/* ── Card Header ── */}
-          <div className="flex items-center justify-between px-3 py-1.5 bg-white/5 border-b border-white/5 text-[10px] font-bold">
-            <span className="text-gray-500 uppercase tracking-wider truncate">{node.roundName}</span>
-            {match ? (
-              isLive ? (
-                <span className="flex items-center gap-1.5 text-rose-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
-                  LIVE · {match.elapsedDisplay}
-                </span>
-              ) : match.status === "FT" ? (
-                <span className="text-gray-500 font-bold">FT</span>
-              ) : (
-                <span className="text-blue-400">{formatMatchDate(match.startTime)}</span>
-              )
-            ) : (
-              <span className="text-gray-600 italic text-[9px]">Awaiting results</span>
-            )}
-          </div>
-
-          {/* ── Top Team Row ── */}
-          <div
-            className={`flex items-center justify-between px-3 py-2.5 border-b border-white/[0.05] min-h-[46px]
-              ${isFT && !homeIsWinner && awayIsWinner ? "opacity-30" : ""}
-              ${isFT && homeIsWinner ? "bg-primary/5" : ""}
-            `}
-          >
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              {topSlot ? (
-                <>
-                  <TeamLogo src={topSlot.teamLogo} name={topSlot.teamName} size={20} />
-                  <span className={`text-sm font-bold truncate
-                    ${homeIsWinner && isFT ? "text-primary" : topSlot.confirmed ? "text-white" : "text-gray-400 italic"}
-                  `}>
-                    {topSlot.teamName}
-                  </span>
-                  {homeIsWinner && isFT && <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />}
-                </>
-              ) : (
-                <span className="text-xs text-gray-600 italic">TBD</span>
-              )}
-            </div>
-            <div className="flex items-baseline gap-1 shrink-0 ml-2">
-              {match && match.status !== "SCHEDULED" ? (
-                <>
-                  <span className={`text-base font-black tabular-nums ${homeIsWinner ? "text-primary" : "text-white"}`}>
-                    {match.homeScore}
-                  </span>
-                  {match.homePenaltyScore !== undefined && (
-                    <span className="text-[10px] font-bold text-gray-400">({match.homePenaltyScore})</span>
-                  )}
-                </>
-              ) : match ? (
-                <span className="text-sm text-gray-600 font-black">—</span>
-              ) : null}
-            </div>
-          </div>
-
-          {/* ── Bottom Team Row ── */}
-          <div
-            className={`flex items-center justify-between px-3 py-2.5 min-h-[46px]
-              ${isFT && !awayIsWinner && homeIsWinner ? "opacity-30" : ""}
-              ${isFT && awayIsWinner ? "bg-primary/5" : ""}
-            `}
-          >
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              {bottomSlot ? (
-                <>
-                  <TeamLogo src={bottomSlot.teamLogo} name={bottomSlot.teamName} size={20} />
-                  <span className={`text-sm font-bold truncate
-                    ${awayIsWinner && isFT ? "text-primary" : bottomSlot.confirmed ? "text-white" : "text-gray-400 italic"}
-                  `}>
-                    {bottomSlot.teamName}
-                  </span>
-                  {awayIsWinner && isFT && <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />}
-                </>
-              ) : (
-                <span className="text-xs text-gray-600 italic">TBD</span>
-              )}
-            </div>
-            <div className="flex items-baseline gap-1 shrink-0 ml-2">
-              {match && match.status !== "SCHEDULED" ? (
-                <>
-                  <span className={`text-base font-black tabular-nums ${awayIsWinner ? "text-primary" : "text-white"}`}>
-                    {match.awayScore}
-                  </span>
-                  {match.awayPenaltyScore !== undefined && (
-                    <span className="text-[10px] font-bold text-gray-400">({match.awayPenaltyScore})</span>
-                  )}
-                </>
-              ) : match ? (
-                <span className="text-sm text-gray-600 font-black">—</span>
-              ) : null}
-            </div>
-          </div>
-
-          {/* ── Penalty Decided Footer ── */}
-          {hasPenalties && (
-            <div className="px-3 py-1 text-center text-[10px] font-bold text-amber-400 bg-amber-500/5 border-t border-amber-500/10 tracking-wide">
-              Decided on Penalties
-            </div>
-          )}
-
-          {/* ── "Awaiting Opponent" Banner for Future Matchups ── */}
-          {noMatch && (topSlot || bottomSlot) && (
-            <div className="px-3 py-1.5 border-t border-blue-500/10 bg-blue-500/5 text-[10px] font-bold text-blue-400 text-center tracking-wide">
-              {topConfirmedOnly
-                ? `${topSlot!.teamName} awaits opponent`
-                : bottomConfirmedOnly
-                ? `${bottomSlot!.teamName} awaits opponent`
-                : bothConfirmed
-                ? "Match to be scheduled"
-                : "Awaiting results"}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function VisualBracket({ matches }: { matches: Match[] }) {
   const rootNode = useMemo(() => buildBracketTree(matches), [matches]);
-
   if (!rootNode) return null;
-
   return (
     <div className="w-full overflow-x-auto custom-scrollbar pb-6 mt-4 animate-fadeIn">
       <div className="inline-block min-w-max">
         <div className="flex items-center justify-end bg-black/40 p-4 sm:p-8 rounded-3xl border border-white/5 shadow-inner backdrop-blur-md">
-          <BracketNodeView node={rootNode} />
+          <KnockoutStageView matches={matches} />
         </div>
       </div>
     </div>
   );
 }
+
+
+
 
 
 // ─── Standings Table ─────────────────────────────────────────────────────────
