@@ -190,6 +190,7 @@ export default function LoopinLiveStream() {
   const [footballInitialLoading, setFootballInitialLoading] = useState<boolean>(true);
   const footballHasLoadedRef = useRef(false);
   const [footballLastUpdated, setFootballLastUpdated] = useState<Date | null>(null);
+  const [footballError, setFootballError] = useState<string | null>(null);
   const [isSportsHudOpen, setIsSportsHudOpen] = useState<boolean>(false);
 
   const [playerStatus, setPlayerStatus] = useState<
@@ -257,25 +258,23 @@ export default function LoopinLiveStream() {
     setFootballLoading(true);
     try {
       const response = await fetch("/api/football");
-      if (response.ok) {
-        const data = await response.json();
-        setFootballMatches(data.matches || []);
-        setFootballStandings(data.standings || []);
-        setFootballLastUpdated(new Date());
-        // Mark initial load complete on first successful fetch
-        if (!footballHasLoadedRef.current) {
-          footballHasLoadedRef.current = true;
-          setFootballInitialLoading(false);
-        }
+      if (!response.ok) {
+        throw new Error(`Sports data is temporarily unavailable (status ${response.status}).`);
       }
+      const data = await response.json();
+      setFootballMatches(data.matches || []);
+      setFootballStandings(data.standings || []);
+      setFootballLastUpdated(new Date());
+      setFootballError(null);
     } catch (err) {
       console.error("Error fetching football data:", err);
-      // If first fetch fails, still clear the skeleton so we can show empty state
+      setFootballError(err instanceof Error ? err.message : "Sports data could not be loaded. Please try again.");
+    } finally {
+      // A non-2xx response used to leave the first load stuck on skeletons forever.
       if (!footballHasLoadedRef.current) {
         footballHasLoadedRef.current = true;
         setFootballInitialLoading(false);
       }
-    } finally {
       setFootballLoading(false);
     }
   }, []);
@@ -2607,8 +2606,10 @@ export default function LoopinLiveStream() {
                   matches={footballMatches}
                   standings={footballStandings}
                   loading={footballInitialLoading}
+                  error={footballError}
                   lastUpdated={footballLastUpdated}
                   onTuneToChannel={handleTuneToChannelByName}
+                  onRetry={fetchFootballData}
                 />
               </div>
             )}

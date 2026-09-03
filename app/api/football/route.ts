@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+export const maxDuration = 25;
+
 // ---------------------------------------------------------------------------
 // ESPN API Configuration
 // ---------------------------------------------------------------------------
@@ -191,8 +194,10 @@ const INTERNATIONAL_LEAGUES = [
   },
 ];
 
-// Unified catalogue for standings and summary fetching
-const ALL_LEAGUES = [...DOMESTIC_LEAGUES, ...EUROPEAN_LEAGUES, ...INTERNATIONAL_LEAGUES];
+type League =
+  | (typeof DOMESTIC_LEAGUES)[number]
+  | (typeof EUROPEAN_LEAGUES)[number]
+  | (typeof INTERNATIONAL_LEAGUES)[number];
 
 // ---------------------------------------------------------------------------
 // Exported interfaces (matched by SportsHub.tsx)
@@ -573,7 +578,7 @@ function mapStandings(
 // Fetch a single ESPN scoreboard for a specific date (YYYYMMDD)
 // ---------------------------------------------------------------------------
 async function fetchScoreboardForDate(
-  league: (typeof ALL_LEAGUES)[0],
+  league: League,
   dateStr?: string
 ): Promise<RawMatch[]> {
   try {
@@ -947,6 +952,11 @@ export async function GET(request: Request) {
     const dateRangeIntl = `${getDateOffset(-3)}-${getDateOffset(7)}`;
 
     const clubLeagues = [...DOMESTIC_LEAGUES, ...EUROPEAN_LEAGUES];
+    const standingsPromise = Promise.all(
+      clubLeagues.map((l) =>
+        fetchStandings(l.slug).then((data) => ({ leagueName: l.name, data }))
+      )
+    );
 
     const [clubResults, intlResults] = await Promise.all([
       Promise.all(clubLeagues.map((l) => fetchScoreboardForDate(l, dateRangeClub))),
@@ -993,7 +1003,10 @@ export async function GET(request: Request) {
       }
     }
 
-    const summaryBatch = prioritised.slice(0, 10);
+    // Full summaries are loaded on demand in the match dialog. Keeping them
+    // out of the initial listing prevents a second slow network batch from
+    // exhausting Netlify's request duration.
+    const summaryBatch: RawMatch[] = [];
 
     // -----------------------------------------------------------------------
     // Step 3 — Fetch summaries concurrently (rate-limited to 10)
@@ -1056,22 +1069,7 @@ export async function GET(request: Request) {
     //          are visible even when they have no matches this week.
     //          For international cups, only fetch if they have matches.
     // -----------------------------------------------------------------------
-    const leaguesWithMatches = new Set(allMatches.map((m) => m.leagueSlug));
-    const leaguesToFetchStandings = ALL_LEAGUES.filter(
-      (l) =>
-        l.category === "domestic" ||
-        l.category === "european" ||
-        leaguesWithMatches.has(l.slug)
-    );
-
-    const standingsResults = await Promise.all(
-      leaguesToFetchStandings.map((l) =>
-        fetchStandings(l.slug).then((data) => ({
-          leagueName: l.name,
-          data,
-        }))
-      )
-    );
+    const standingsResults = await standingsPromise;
 
     const standings: CompetitionStandings[] = [];
     for (const item of standingsResults) {
