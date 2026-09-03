@@ -7,11 +7,8 @@ const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
 
 // Must include browser-like headers; ESPN blocks bare Node.js requests
 const ESPN_HEADERS: Record<string, string> = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
   Accept: "application/json",
-  Origin: "https://www.espn.com",
-  Referer: "https://www.espn.com/",
 };
 
 // ---------------------------------------------------------------------------
@@ -680,13 +677,15 @@ async function fetchScoreboardForDate(
 }
 
 // Helper: get date string in YYYYMMDD format offset by N days from now
-// Uses Asia/Dhaka timezone so "today" matches what Dhaka users see
+// Uses a safe manual offset for Asia/Dhaka (+6 hours) to avoid Intl ICU data crashes on Netlify
 function getDateOffset(offsetDays: number): string {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka" })
-    .format(d)
-    .replace(/-/g, "");
+  d.setHours(d.getUTCHours() + 6); // Dhaka is UTC+6
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${yyyy}${mm}${dd}`;
 }
 
 // ---------------------------------------------------------------------------
