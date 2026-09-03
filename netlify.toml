@@ -2,5 +2,9 @@
   command = "npm run build"
   publish = ".next"
 
+[functions]
+  # Increase timeout to 26s (max on Netlify free tier) for the ESPN API route
+  node_bundler = "nft"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"

@@ -8,8 +8,24 @@ const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
 // Must include browser-like headers; ESPN blocks bare Node.js requests
 const ESPN_HEADERS: Record<string, string> = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  Accept: "application/json",
+  Accept: "application/json, text/plain, */*",
+  "Accept-Language": "en-US,en;q=0.9",
 };
+
+// Per-request timeout (ms) — keeps Netlify serverless under its 10s limit
+const FETCH_TIMEOUT_MS = 6000;
+
+// Wraps fetch() with an AbortController timeout so ESPN slow/blocked
+// responses don't hang the whole serverless function.
+async function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // League catalogue — domestic + European competitions
@@ -564,7 +580,7 @@ async function fetchScoreboardForDate(
     const url = dateStr
       ? `${ESPN_BASE}/${league.slug}/scoreboard?dates=${dateStr}`
       : `${ESPN_BASE}/${league.slug}/scoreboard`;
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       headers: ESPN_HEADERS,
       next: { revalidate: 30 },
     });
@@ -693,7 +709,7 @@ function getDateOffset(offsetDays: number): string {
 // ---------------------------------------------------------------------------
 async function fetchSummary(leagueSlug: string, matchId: string): Promise<Record<string, unknown> | null> {
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `${ESPN_BASE}/${leagueSlug}/summary?event=${matchId}`,
       { headers: ESPN_HEADERS }
     );
@@ -710,7 +726,7 @@ async function fetchSummary(leagueSlug: string, matchId: string): Promise<Record
 // ---------------------------------------------------------------------------
 async function fetchStandings(leagueSlug: string): Promise<Record<string, unknown> | null> {
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://site.api.espn.com/apis/v2/sports/soccer/${leagueSlug}/standings`,
       { headers: ESPN_HEADERS }
     );
@@ -926,8 +942,9 @@ export async function GET(request: Request) {
     //   for leagues that haven't started yet (e.g. Premier League in early August).
     //   International leagues get a shorter 14-day window.
     // -----------------------------------------------------------------------
-    const dateRangeClub = `${getDateOffset(-2)}-${getDateOffset(30)}`;
-    const dateRangeIntl = `${getDateOffset(-2)}-${getDateOffset(14)}`;
+    // Keep date ranges tight to reduce response size and avoid Netlify timeouts
+    const dateRangeClub = `${getDateOffset(-3)}-${getDateOffset(7)}`;
+    const dateRangeIntl = `${getDateOffset(-3)}-${getDateOffset(7)}`;
 
     const clubLeagues = [...DOMESTIC_LEAGUES, ...EUROPEAN_LEAGUES];
 
