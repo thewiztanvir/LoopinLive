@@ -6,7 +6,10 @@ export const maxDuration = 25;
 // ---------------------------------------------------------------------------
 // ESPN API Configuration
 // ---------------------------------------------------------------------------
-const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
+// `site.api.espn.com` rejects requests from Netlify's serverless network.
+// `site.web.api.espn.com` exposes the same public ESPN payloads and is
+// reachable from both Netlify and local development.
+const ESPN_BASE = "https://site.web.api.espn.com/apis/site/v2/sports/soccer";
 
 // Must include browser-like headers; ESPN blocks bare Node.js requests
 const ESPN_HEADERS: Record<string, string> = {
@@ -732,7 +735,7 @@ async function fetchSummary(leagueSlug: string, matchId: string): Promise<Record
 async function fetchStandings(leagueSlug: string): Promise<Record<string, unknown> | null> {
   try {
     const res = await fetchWithTimeout(
-      `https://site.api.espn.com/apis/v2/sports/soccer/${leagueSlug}/standings`,
+      `https://site.web.api.espn.com/apis/v2/sports/soccer/${leagueSlug}/standings`,
       { headers: ESPN_HEADERS }
     );
     if (!res.ok) return null;
